@@ -173,7 +173,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     children: [
                       const Text("Already have an account? "),
                       GestureDetector(
-                        onTap:() => context.go(Routes.signin),
+                        onTap:() => context.go(Routes.signIn),
                         child: const Text(
                           "Sign In",
                           style: TextStyle(

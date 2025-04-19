@@ -42,7 +42,7 @@ class WelcomeScreen extends StatelessWidget {
                   SizedBox(height: 80),
                   Center(
                     child: ElevatedButton(
-                      onPressed: () => context.go(Routes.signin),
+                      onPressed: () => context.go(Routes.signIn),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Palette.accentColor,
                         padding: EdgeInsets.symmetric(horizontal: 100, vertical: 15),
@@ -54,7 +54,7 @@ class WelcomeScreen extends StatelessWidget {
                   SizedBox(height: 10),
                   Center(
                     child: GestureDetector(
-                      onTap: () => context.go(Routes.signup),
+                      onTap: () => context.go(Routes.signUp),
                       child: RichText(
                         text: TextSpan(
                           text: "Don't have an account? ",
