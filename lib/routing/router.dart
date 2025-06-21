@@ -9,6 +9,9 @@ import '../ui/screens/home.dart';
 import '../ui/screens/signin.dart';
 import '../ui/screens/signup.dart';
 import '../ui/screens/profile.dart';
+import '../ui/screens/request_ride.dart';
+import '../ui/screens/offer_ride.dart';
+import '../ui/screens/notifications.dart';
 
 
 GoRouter router(FirebaseAuth auth) {
@@ -54,6 +57,18 @@ GoRouter router(FirebaseAuth auth) {
       GoRoute(
         path: Routes.profile,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: Routes.requestRide,
+        builder: (context, state) => const RequestRideScreen(),
+      ),
+      GoRoute(
+        path: Routes.offerRide,
+        builder: (context, state) => const OfferRideScreen(),
+      ),
+      GoRoute(
+        path: Routes.notifications,
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

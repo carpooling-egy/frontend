@@ -5,6 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:frontend/firebase_options.dart';
 import 'package:frontend/services/auth/firebase_auth_methods.dart';
 import 'package:frontend/routing/router.dart';
+import 'package:frontend/services/api/api_service.dart';
+import 'package:frontend/services/api/profile_service.dart';
+import 'package:frontend/providers/profile_provider.dart';
+import 'package:frontend/providers/ride_provider.dart';
+import 'package:frontend/services/api/ride_service.dart';
+import 'package:frontend/ui/screens/profile_screen.dart';
+import 'package:http/http.dart' as http;
 
 void main()async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,9 +31,31 @@ class MyApp extends StatelessWidget {
         Provider<FirebaseAuthMethods>(
           create: (_) => FirebaseAuthMethods(FirebaseAuth.instance),
         ),
-        StreamProvider(
-          create: (context) => context.read<FirebaseAuthMethods>().authState,
-          initialData: null,
+        Provider<ApiService>(
+          create: (context) => ApiService(
+            http.Client(),
+            context.read<FirebaseAuthMethods>(),
+          ),
+        ),
+        Provider<ProfileService>(
+          create: (context) => ProfileService(
+            context.read<ApiService>(),
+          ),
+        ),
+        ChangeNotifierProvider<ProfileProvider>(
+          create: (context) => ProfileProvider(
+            context.read<ProfileService>(),
+          ),
+        ),
+        Provider<RideService>(
+          create: (context) => RideService(
+            context.read<ApiService>(),
+          ),
+        ),
+        ChangeNotifierProvider<RideProvider>(
+          create: (context) => RideProvider(
+            context.read<RideService>(),
+          ),
         ),
       ],
       child: MaterialApp.router(

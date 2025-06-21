@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
+import 'package:frontend/services/api/profile_service.dart';
 
 
 class FirebaseAuthMethods {
@@ -38,6 +40,11 @@ class FirebaseAuthMethods {
     return null;
   }
 
+  // Get auth token
+  Future<String?> getAuthToken() async {
+    return await _auth.currentUser?.getIdToken();
+  }
+
   // EMAIL SIGN UP
   Future<void> signUpWithEmail({
     required String email,
@@ -45,10 +52,33 @@ class FirebaseAuthMethods {
     required BuildContext context,
   }) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
+      final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      
+      // Create profile after successful signup with valid data
+      if (userCredential.user != null) {
+        final profileService = Provider.of<ProfileService>(context, listen: false);
+        try {
+          // Get username from email (part before @)
+          final username = email.split('@')[0];
+          // Create initial profile with valid data
+          await profileService.createProfile(
+            userId: userCredential.user!.uid,  // Use Firebase UID as userId
+            firstName: username,
+            lastName: 'User',
+            email: userCredential.user!.email!,
+            phoneNumber: '+1234567890', // Default valid phone number
+            gender: 'OTHER',
+          );
+          print('Profile created successfully for new user');
+        } catch (e) {
+          print('Error creating profile: $e');
+          // Don't throw here, as the user is already created
+        }
+      }
+      
       await sendEmailVerification(context);
     } on FirebaseAuthException catch (e) {
       // if you want to display your own custom error message
@@ -71,21 +101,33 @@ class FirebaseAuthMethods {
     required BuildContext context,
   }) async {
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      if (!user.emailVerified) {
-        await sendEmailVerification(context);
-        // restrict access to certain things using provider
-        // transition to another page instead of home screen
-      }
+      
+      // Create profile if it doesn't exist
       if (userCredential.user != null) {
-        String token = await user.getIdToken() ?? "";
-        print("User JWT: $token"); // Printing the JWT
+        final profileService = Provider.of<ProfileService>(context, listen: false);
+        try {
+          // Try to get the profile using the userId
+          await profileService.getProfile(userCredential.user!.uid);
+        } catch (e) {
+          // Get username from email (part before @)
+          final username = email.split('@')[0];
+          // If profile doesn't exist, create it with valid data
+          await profileService.createProfile(
+            userId: userCredential.user!.uid,  // Use Firebase UID as userId
+            firstName: username,
+            lastName: 'User',
+            email: userCredential.user!.email!,
+            phoneNumber: '+1234567890', // Default valid phone number
+            gender: 'OTHER',
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
-      showSnackBar(context, e.message!); // Displaying the error message
+      _handleError(e, context);
     }
   }
 
@@ -126,15 +168,25 @@ class FirebaseAuthMethods {
             credential,
           );
 
-          // if you want to do specific task like storing information in firestore
-          // only for new users using google sign in (since there are no two options
-          // for google sign in and google sign up, only one as of now),
-          // do the following:
-
+          // Create profile if it doesn't exist
           if (userCredential.user != null) {
-            String token = await user.getIdToken() ?? '';
-            print("User JWT: $token");
-            if (userCredential.additionalUserInfo!.isNewUser) {}
+            final profileService = Provider.of<ProfileService>(context, listen: false);
+            try {
+              // Try to get the profile using the userId
+              await profileService.getProfile(userCredential.user!.uid);
+            } catch (e) {
+              // Get username from email (part before @)
+              final username = userCredential.user!.email!.split('@')[0];
+              // If profile doesn't exist, create it with valid data
+              await profileService.createProfile(
+                userId: userCredential.user!.uid,  // Use Firebase UID as userId
+                firstName: username,
+                lastName: userCredential.user!.displayName?.split(' ').last ?? 'User',
+                email: userCredential.user!.email!,
+                phoneNumber: '+1234567890', // Default valid phone number
+                gender: 'OTHER',
+              );
+            }
           }
         }
       }
@@ -160,7 +212,28 @@ class FirebaseAuthMethods {
       final OAuthCredential facebookAuthCredential =
           FacebookAuthProvider.credential(loginResult.accessToken!.tokenString);
 
-      await _auth.signInWithCredential(facebookAuthCredential);
+      final userCredential = await _auth.signInWithCredential(facebookAuthCredential);
+      
+      // Create profile if it doesn't exist
+      if (userCredential.user != null) {
+        final profileService = Provider.of<ProfileService>(context, listen: false);
+        try {
+          // Try to get the profile using the userId
+          await profileService.getProfile(userCredential.user!.uid);
+        } catch (e) {
+          // Get username from email (part before @)
+          final username = userCredential.user!.email!.split('@')[0];
+          // If profile doesn't exist, create it with valid data
+          await profileService.createProfile(
+            userId: userCredential.user!.uid,  // Use Firebase UID as userId
+            firstName: username,
+            lastName: userCredential.user!.displayName?.split(' ').last ?? 'User',
+            email: userCredential.user!.email!,
+            phoneNumber: '+1234567890', // Default valid phone number
+            gender: 'OTHER',
+          );
+        }
+      }
     } on FirebaseAuthException catch (e) {
       showSnackBar(context, e.message!); // Displaying the error message
     }
@@ -175,7 +248,7 @@ class FirebaseAuthMethods {
       await _auth.sendPasswordResetEmail(email: email);
       showSnackBar(context, 'Password reset email sent!');
     } on FirebaseAuthException catch (e) {
-      showSnackBar(context, e.message ?? 'An error occurred.');
+      _handleError(e, context);
     }
   }
 
@@ -184,7 +257,7 @@ class FirebaseAuthMethods {
     try {
       await _auth.signOut();
     } on FirebaseAuthException catch (e) {
-      showSnackBar(context, e.message!); // Displaying the error message
+      _handleError(e, context);
     }
   }
 
@@ -193,9 +266,45 @@ class FirebaseAuthMethods {
     try {
       await _auth.currentUser!.delete();
     } on FirebaseAuthException catch (e) {
-      showSnackBar(context, e.message!); // Displaying the error message
+      _handleError(e, context);
       // if an error of requires-recent-login is thrown, make sure to log
       // in user again and then delete account.
     }
+  }
+
+  void _handleError(FirebaseAuthException e, BuildContext context) {
+    String message = 'An error occurred';
+    switch (e.code) {
+      case 'user-not-found':
+        message = 'No user found with this email';
+        break;
+      case 'wrong-password':
+        message = 'Wrong password provided';
+        break;
+      case 'email-already-in-use':
+        message = 'Email already in use';
+        break;
+      case 'weak-password':
+        message = 'Password is too weak';
+        break;
+      case 'invalid-email':
+        message = 'Email is invalid';
+        break;
+      case 'user-disabled':
+        message = 'User account has been disabled';
+        break;
+      case 'too-many-requests':
+        message = 'Too many requests. Try again later';
+        break;
+      case 'operation-not-allowed':
+        message = 'Operation not allowed';
+        break;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 }
