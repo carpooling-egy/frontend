@@ -3,6 +3,8 @@ import 'package:frontend/models/ride_offer.dart';
 import 'package:frontend/services/api/api_service.dart';
 import 'dart:convert';
 import 'package:frontend/models/ride_request.dart';
+import 'package:frontend/models/recent_trip.dart';
+import 'package:frontend/models/detailed_trip.dart';
 
 class RideService {
   final ApiService _apiService;
@@ -101,6 +103,21 @@ class RideService {
         },
       ),
     ];
+  }
+
+  // Fetch recent activities (offers and requests) from backend
+  Future<List<RecentTrip>> fetchRecentActivities() async {
+    try {
+      final response = await _apiService.get('/activities');
+      if (response is List) {
+        return response.map((json) => RecentTrip.fromJson(json as Map<String, dynamic>)).toList();
+      } else {
+        throw Exception('Unexpected response format');
+      }
+    } catch (e) {
+      debugPrint('RideService: Error fetching recent activities: $e');
+      throw Exception('Failed to fetch recent activities: $e');
+    }
   }
 
   // Request a ride
@@ -285,6 +302,21 @@ class RideService {
     } catch (e) {
       debugPrint('RideService: Error getting ride details: $e');
       throw Exception('Failed to get ride details: $e');
+    }
+  }
+
+  // Fetch details for a single activity (offer or request) from backend
+  Future<DetailedTrip> fetchActivityDetail(String activityId) async {
+    try {
+      final response = await _apiService.get('/activities/$activityId');
+      if (response is Map<String, dynamic>) {
+        return DetailedTrip.fromJson(response);
+      } else {
+        throw Exception('Unexpected response format');
+      }
+    } catch (e) {
+      debugPrint('RideService: Error fetching activity detail: $e');
+      throw Exception('Failed to fetch activity detail: $e');
     }
   }
 } 
