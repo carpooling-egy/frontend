@@ -46,8 +46,6 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
   
   // Preferences
   bool _sameGender = false;
-  bool _allowsSmoking = false;
-  bool _allowsPets = false;
   
   // Coordinates (to be set by geocoding)
   double _sourceLatitude = 42.5078;
@@ -138,8 +136,6 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
           detourTimeMinutes: int.parse(_detourTimeController.text),
           capacity: int.parse(_capacityController.text),
           sameGender: _sameGender,
-          allowsSmoking: _allowsSmoking,
-          allowsPets: _allowsPets,
           createdAt: now,
           updatedAt: now,
         );
@@ -163,8 +159,6 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         debugPrint('  Capacity: ${rideOffer.capacity} seats');
         debugPrint('\nPreferences:');
         debugPrint('  Same Gender Only: ${rideOffer.sameGender}');
-        debugPrint('  Allows Smoking: ${rideOffer.allowsSmoking}');
-        debugPrint('  Allows Pets: ${rideOffer.allowsPets}');
         debugPrint('\nJSON Payload:');
         debugPrint(JsonEncoder.withIndent('  ').convert(rideOffer.toJson()));
         debugPrint('===========================');
@@ -181,8 +175,6 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
           detourTimeMinutes: rideOffer.detourTimeMinutes,
           capacity: rideOffer.capacity,
           sameGender: rideOffer.sameGender,
-          allowsSmoking: rideOffer.allowsSmoking,
-          allowsPets: rideOffer.allowsPets,
           userId: rideOffer.userId,
           createdAt: rideOffer.createdAt,
           updatedAt: rideOffer.updatedAt,
@@ -342,7 +334,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                 child: ElevatedButton(
                   onPressed: _submitForm,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Palette.orange,
+                    backgroundColor: Palette.primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),

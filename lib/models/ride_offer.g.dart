@@ -23,8 +23,6 @@ RideOffer _$RideOfferFromJson(Map<String, dynamic> json) => RideOffer(
       currentNumberOfRequests:
           (json['currentNumberOfRequests'] as num?)?.toInt() ?? 0,
       sameGender: json['sameGender'] as bool,
-      allowsSmoking: json['allowsSmoking'] as bool,
-      allowsPets: json['allowsPets'] as bool,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -49,8 +47,6 @@ Map<String, dynamic> _$RideOfferToJson(RideOffer instance) => <String, dynamic>{
       'capacity': instance.capacity,
       'currentNumberOfRequests': instance.currentNumberOfRequests,
       'sameGender': instance.sameGender,
-      'allowsSmoking': instance.allowsSmoking,
-      'allowsPets': instance.allowsPets,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

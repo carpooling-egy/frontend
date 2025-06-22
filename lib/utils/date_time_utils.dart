@@ -12,4 +12,8 @@ DateTime parseIso8601String(String dateString) {
     dateString = '${dateString}Z';
   }
   return DateTime.parse(dateString).toUtc();
+}
+
+String formatDateTimeReadable(DateTime date) {
+  return DateFormat('d MMM yyyy, h:mm a').format(date);
 } 

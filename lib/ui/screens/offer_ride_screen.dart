@@ -24,8 +24,6 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
   DateTime? _departureTime;
   DateTime? _maxEstimatedArrivalTime;
   bool _sameGender = false;
-  bool _allowsSmoking = false;
-  bool _allowsPets = false;
 
   @override
   void dispose() {
@@ -53,8 +51,6 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         detourTimeMinutes: int.parse(_detourTimeController.text),
         capacity: int.parse(_capacityController.text),
         sameGender: _sameGender,
-        allowsSmoking: _allowsSmoking,
-        allowsPets: _allowsPets,
       );
 
       if (mounted) {

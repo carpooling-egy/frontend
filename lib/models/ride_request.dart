@@ -18,8 +18,6 @@ class RideRequest {
   final int maxWalkingTimeMinutes;
   final int numberOfRiders;
   final bool sameGender;
-  final bool allowsSmoking;
-  final bool allowsPets;
   final bool isMatched;
   @JsonKey(name: 'createdAt')
   final DateTime? createdAt;
@@ -40,8 +38,6 @@ class RideRequest {
     required this.maxWalkingTimeMinutes,
     required this.numberOfRiders,
     required this.sameGender,
-    required this.allowsSmoking,
-    required this.allowsPets,
     this.isMatched = false,
     this.createdAt,
     this.updatedAt,
@@ -80,8 +76,6 @@ class RideRequest {
     int? maxWalkingTimeMinutes,
     int? numberOfRiders,
     bool? sameGender,
-    bool? allowsSmoking,
-    bool? allowsPets,
     bool? isMatched,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -100,8 +94,6 @@ class RideRequest {
       maxWalkingTimeMinutes: maxWalkingTimeMinutes ?? this.maxWalkingTimeMinutes,
       numberOfRiders: numberOfRiders ?? this.numberOfRiders,
       sameGender: sameGender ?? this.sameGender,
-      allowsSmoking: allowsSmoking ?? this.allowsSmoking,
-      allowsPets: allowsPets ?? this.allowsPets,
       isMatched: isMatched ?? this.isMatched,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

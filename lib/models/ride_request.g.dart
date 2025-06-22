@@ -21,8 +21,6 @@ RideRequest _$RideRequestFromJson(Map<String, dynamic> json) => RideRequest(
       maxWalkingTimeMinutes: (json['maxWalkingTimeMinutes'] as num).toInt(),
       numberOfRiders: (json['numberOfRiders'] as num).toInt(),
       sameGender: json['sameGender'] as bool,
-      allowsSmoking: json['allowsSmoking'] as bool,
-      allowsPets: json['allowsPets'] as bool,
       isMatched: json['isMatched'] as bool? ?? false,
       createdAt: json['createdAt'] == null
           ? null
@@ -47,8 +45,6 @@ Map<String, dynamic> _$RideRequestToJson(RideRequest instance) =>
       'maxWalkingTimeMinutes': instance.maxWalkingTimeMinutes,
       'numberOfRiders': instance.numberOfRiders,
       'sameGender': instance.sameGender,
-      'allowsSmoking': instance.allowsSmoking,
-      'allowsPets': instance.allowsPets,
       'isMatched': instance.isMatched,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),

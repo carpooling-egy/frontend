@@ -15,6 +15,11 @@ import 'package:frontend/providers/ride_provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:frontend/models/ride_offer.dart';
 import 'package:frontend/ui/widgets/custom_back_button.dart';
+import 'package:frontend/ui/screens/activity_detail.dart';
+import 'package:frontend/utils/date_time_utils.dart';
+import 'package:frontend/ui/screens/upcoming_trips.dart';
+import 'package:frontend/ui/screens/pending_requests.dart';
+import 'package:frontend/ui/widgets/activity_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -67,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Carpooling',
+              '3al Sekka',
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 20,
@@ -157,6 +162,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 context.go(Routes.offerRide);
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.event_available),
+              title: const Text('Upcoming Trips'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const UpcomingTripsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.hourglass_top),
+              title: const Text('Pending Requests'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PendingRequestsScreen()),
+                );
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout),
@@ -201,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const Text(
-                    'Carpooling',
+                    '3al Sekka',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 32,
@@ -425,155 +452,78 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildActivityItem(Map<String, dynamic> request) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Palette.orange.withOpacity(0.1),
-          child: Icon(
-            Icons.car_rental,
-            color: Palette.orange,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          '${request['sourceAddress']} → ${request['destinationAddress']}',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              'Created: ${_formatDate(DateTime.parse(request['createdAt']))}',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
+    // Matched rider request
+    final isMatchedRider = request['matched'] == true;
+    if (isMatchedRider) {
+      return ActivityCard(
+        type: ActivityCardType.matchedRider,
+        data: request,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ActivityDetailScreen(
+                activity: request,
+                type: 'request_matched',
               ),
             ),
-            if (request['status'] != null) ...[
-              const SizedBox(height: 2),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(request['status']).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  request['status'].toString().toUpperCase(),
-                  style: TextStyle(
-                    color: _getStatusColor(request['status']),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+          );
+        },
+      );
+    }
+    // Detect unmatched rider request
+    final isUnmatchedRider = request['matched'] == false;
+    if (isUnmatchedRider) {
+      return ActivityCard(
+        type: ActivityCardType.unmatchedRider,
+        data: request,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ActivityDetailScreen(
+                activity: request,
+                type: 'request_unmatched',
               ),
-            ],
-          ],
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      ),
+            ),
+          );
+        },
+      );
+    }
+    String type = (request['matchedDriver'] != null) ? 'request_matched' : 'request_unmatched';
+    return ActivityCard(
+      type: ActivityCardType.unmatchedRider,
+      data: request,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ActivityDetailScreen(
+              activity: request,
+              type: type,
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildRideOfferItem(RideOffer offer) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Palette.primaryColor.withOpacity(0.1),
-          child: Icon(
-            Icons.directions_car,
-            color: Palette.primaryColor,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          '${offer.sourceAddress} → ${offer.destinationAddress}',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              'Departure: ${_formatDate(offer.departureTime)}',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+    return ActivityCard(
+      type: ActivityCardType.driverOffer,
+      data: offer,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ActivityDetailScreen(
+              activity: offer,
+              type: 'offer',
             ),
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                Icon(
-                  Icons.people,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${offer.currentNumberOfRequests}/${offer.capacity} seats',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                if (offer.allowsPets)
-                  Icon(
-                    Icons.pets,
-                    size: 16,
-                    color: Colors.grey[600],
-                  ),
-                if (offer.allowsSmoking) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.smoking_rooms,
-                    size: 16,
-                    color: Colors.grey[600],
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      ),
+          ),
+        );
+      },
     );
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'accepted':
-        return Colors.green;
-      case 'completed':
-        return Colors.blue;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return timeago.format(date);
   }
 }
 
