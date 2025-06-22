@@ -212,124 +212,131 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
         leading: CustomBackButton(color: Palette.primaryColor, route: Routes.home),
         title: const Text('Request a Ride'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Source Location
-              TextFormField(
-                controller: _sourceAddressController,
-                decoration: _inputDecoration('Source Address'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter source address';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Destination Location
-              TextFormField(
-                controller: _destinationAddressController,
-                decoration: _inputDecoration('Destination Address'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter destination address';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Earliest Departure Time
-              TextFormField(
-                controller: _earliestDepartureTimeController,
-                decoration: _inputDecoration('Earliest Departure Time'),
-                readOnly: true,
-                onTap: () => _selectDateTime(_earliestDepartureTimeController, false),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select earliest departure time';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Latest Arrival Time
-              TextFormField(
-                controller: _latestArrivalTimeController,
-                decoration: _inputDecoration('Latest Arrival Time'),
-                readOnly: true,
-                onTap: () => _selectDateTime(_latestArrivalTimeController, true),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select latest arrival time';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Max Walking Time
-              TextFormField(
-                controller: _maxWalkingTimeController,
-                decoration: _inputDecoration('Maximum Walking Time (minutes)'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter maximum walking time';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Number of Riders
-              TextFormField(
-                controller: _numberOfRidersController,
-                decoration: _inputDecoration('Number of Riders'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter number of riders';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              
-              // Preferences Section
-              const Text(
-                'Preferences',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Source Location
+                      TextFormField(
+                        controller: _sourceAddressController,
+                        decoration: _inputDecoration('Source Address'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter source address';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Destination Location
+                      TextFormField(
+                        controller: _destinationAddressController,
+                        decoration: _inputDecoration('Destination Address'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter destination address';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Earliest Departure Time
+                      TextFormField(
+                        controller: _earliestDepartureTimeController,
+                        decoration: _inputDecoration('Earliest Departure Time'),
+                        readOnly: true,
+                        onTap: () => _selectDateTime(_earliestDepartureTimeController, false),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select earliest departure time';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Latest Arrival Time
+                      TextFormField(
+                        controller: _latestArrivalTimeController,
+                        decoration: _inputDecoration('Latest Arrival Time'),
+                        readOnly: true,
+                        onTap: () => _selectDateTime(_latestArrivalTimeController, true),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select latest arrival time';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Max Walking Time
+                      TextFormField(
+                        controller: _maxWalkingTimeController,
+                        decoration: _inputDecoration('Maximum Walking Time (minutes)'),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter maximum walking time';
+                          }
+                          if (int.tryParse(value) == null) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Number of Riders
+                      TextFormField(
+                        controller: _numberOfRidersController,
+                        decoration: _inputDecoration('Number of Riders'),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter number of riders';
+                          }
+                          if (int.tryParse(value) == null) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Preferences Section
+                      const Text(
+                        'Preferences',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Same Gender Switch
+                      SwitchListTile(
+                        title: const Text('Same Gender Only'),
+                        value: _sameGender,
+                        onChanged: (value) => setState(() => _sameGender = value),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              
-              // Same Gender Switch
-              SwitchListTile(
-                title: const Text('Same Gender Only'),
-                value: _sameGender,
-                onChanged: (value) => setState(() => _sameGender = value),
-              ),
-              
-              const SizedBox(height: 100),
-              
-              // Submit Button
-              SizedBox(
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _submitForm,
@@ -350,8 +357,8 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

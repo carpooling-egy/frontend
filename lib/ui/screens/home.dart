@@ -34,8 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadProfileImage();
     _loadProfileData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RideProvider>().loadUserRideOffers();
-      context.read<RideProvider>().loadUserRideRequests();
+      context.read<RideProvider>().loadAllUserRides();
     });
   }
 
@@ -276,14 +275,76 @@ class _HomeScreenState extends State<HomeScreen> {
     return Consumer<RideProvider>(
       builder: (context, rideProvider, child) {
         if (rideProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Recent Activity',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
         if (rideProvider.error != null) {
-          return Center(
-            child: Text(
-              'Error loading activities: ${rideProvider.error}',
-              style: const TextStyle(color: Colors.red),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Recent Activity',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Error loading activities',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Please try again later',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         }
@@ -292,8 +353,52 @@ class _HomeScreenState extends State<HomeScreen> {
         final requests = rideProvider.userRideRequests;
 
         if (offers.isEmpty && requests.isEmpty) {
-          return const Center(
-            child: Text('No recent activities'),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Recent Activity',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.history,
+                          color: Colors.grey[400],
+                          size: 48,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'No recent activities',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Start by requesting or offering a ride',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
         }
 
@@ -322,9 +427,58 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildActivityItem(Map<String, dynamic> request) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: ListTile(
-        title: Text('${request['sourceAddress']} → ${request['destinationAddress']}'),
-        subtitle: Text('Created: ${_formatDate(DateTime.parse(request['createdAt']))}'),
+        leading: CircleAvatar(
+          backgroundColor: Palette.orange.withOpacity(0.1),
+          child: Icon(
+            Icons.car_rental,
+            color: Palette.orange,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          '${request['sourceAddress']} → ${request['destinationAddress']}',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              'Created: ${_formatDate(DateTime.parse(request['createdAt']))}',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+            if (request['status'] != null) ...[
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(request['status']).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  request['status'].toString().toUpperCase(),
+                  style: TextStyle(
+                    color: _getStatusColor(request['status']),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
   }
@@ -332,11 +486,90 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildRideOfferItem(RideOffer offer) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: ListTile(
-        title: Text('${offer.sourceAddress} → ${offer.destinationAddress}'),
-        subtitle: Text('Departure: ${_formatDate(offer.departureTime)}'),
+        leading: CircleAvatar(
+          backgroundColor: Palette.primaryColor.withOpacity(0.1),
+          child: Icon(
+            Icons.directions_car,
+            color: Palette.primaryColor,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          '${offer.sourceAddress} → ${offer.destinationAddress}',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              'Departure: ${_formatDate(offer.departureTime)}',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                Icon(
+                  Icons.people,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${offer.currentNumberOfRequests}/${offer.capacity} seats',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                if (offer.allowsPets)
+                  Icon(
+                    Icons.pets,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                if (offer.allowsSmoking) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.smoking_rooms,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'accepted':
+        return Colors.green;
+      case 'completed':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   String _formatDate(DateTime date) {
