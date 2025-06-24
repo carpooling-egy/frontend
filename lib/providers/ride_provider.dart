@@ -29,11 +29,12 @@ class RideProvider with ChangeNotifier {
       cards.forEach((key, value) {
         if (value is List) {
           for (var card in value) {
-            card['cardType'] = key; // Attach type for later use
+            card['type'] = key; // Attach type for later use
             _summarizedCards.add(card);
           }
         }
       });
+
       _isLoadingSummarized = false;
       notifyListeners();
     } catch (e) {
@@ -44,7 +45,7 @@ class RideProvider with ChangeNotifier {
   }
 
   Future<void> loadDetailedCard({
-    required String cardType,
+    required String type,
     required String userId,
     required String cardId,
   }) async {
@@ -53,7 +54,7 @@ class RideProvider with ChangeNotifier {
     notifyListeners();
     try {
       final detail = await _tripService.getDetailedCard(
-        cardType: cardType,
+        type: type,
         userId: userId,
         cardId: cardId,
       );

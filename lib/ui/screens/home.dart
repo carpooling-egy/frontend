@@ -65,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileProvider>().profile;
+    final user = _auth.currentUser;
     
     return Scaffold(
       appBar: AppBar(
@@ -199,103 +200,115 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Welcome Section
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Palette.primaryColor.withOpacity(0.8),
-                    Palette.primaryColor,
-                  ],
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Welcome to',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                    ),
-                  ),
-                  const Text(
-                    '3al Sekka',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Find your perfect ride match',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Quick Actions Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Quick Actions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ActionCard(
-                          icon: Icons.car_rental,
-                          title: 'Request',
-                          subtitle: 'Find a ride',
-                          color: Palette.orange,
-                          onTap: () => context.go(Routes.requestRide),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _ActionCard(
-                          icon: Icons.directions_car,
-                          title: 'Offer',
-                          subtitle: 'Share your ride',
-                          color: Palette.primaryColor,
-                          onTap: () => context.go(Routes.offerRide),
-                        ),
-                      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          if (user != null) {
+            await Future.wait([
+              context.read<RideProvider>().loadSummarizedCards(user.uid),
+              context.read<ProfileProvider>().fetchProfile(user.uid),
+            ]);
+            await _loadProfileImage();
+          }
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Welcome Section
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Palette.primaryColor.withOpacity(0.8),
+                      Palette.primaryColor,
                     ],
                   ),
-                ],
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Welcome to',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                    const Text(
+                      '3al Sekka',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Find your perfect ride match',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Recent Activity Section
-            _buildRecentActivity(),
-          ],
+              // Quick Actions Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.car_rental,
+                            title: 'Request',
+                            subtitle: 'Find a ride',
+                            color: Palette.orange,
+                            onTap: () => context.go(Routes.requestRide),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.directions_car,
+                            title: 'Offer',
+                            subtitle: 'Share your ride',
+                            color: Palette.primaryColor,
+                            onTap: () => context.go(Routes.offerRide),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Recent Activity Section
+              _buildRecentActivity(),
+            ],
+          ),
         ),
       ),
     );
@@ -453,10 +466,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSummarizedCard(BuildContext context, Map<String, dynamic> card) {
+    print('\n\n\n\n');
+    card.forEach((key, value) {
+      print('key: $key, value: $value');
+    });
+
+
     ActivityCardType type;
-    if (card['cardType'].toString().contains('driver-offer')) {
+    if (card['type'].toString().contains('driver')) {
       type = ActivityCardType.driverOffer;
-    } else if (card['cardType'].toString().contains('matched')) {
+    } else if (card['type'].toString().contains('matchedRiderRequests') && card['matched']) {
       type = ActivityCardType.matchedRider;
     } else {
       type = ActivityCardType.unmatchedRider;
@@ -469,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (user == null) return;
         final provider = context.read<RideProvider>();
         await provider.loadDetailedCard(
-          cardType: card['cardType'].toString().replaceAll('-', '_'),
+          type: card['type'].toString().replaceAll('-', '_'),
           userId: user.uid,
           cardId: card['id'].toString(),
         );

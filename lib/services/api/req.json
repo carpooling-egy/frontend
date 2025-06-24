@@ -43,7 +43,7 @@ data:
 
 Details cards:
 in case of detailed cards
-Template: GET http://trip-management/detailed-card/{cardType}
+Template: GET http://trip-management/detailed-card/{type}
 the 2 endpoints will be:
 - GET http://trip-management/detailed-card/rider-request/
 - GET http://trip-management/detailed-card/driver-offer/

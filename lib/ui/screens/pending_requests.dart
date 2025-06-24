@@ -38,19 +38,41 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 
           if (rideProvider.error != null) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                  const SizedBox(height: 16),
-                  Text('Error: ${rideProvider.error}'),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Error loading activities',
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'Please try again later',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
           final unmatchedRequests = rideProvider.summarizedCards
-              .where((card) => card['cardType'].toString().contains('unmatched-rider'))
+              .where((card) => card['type'].toString().contains('unmatchedRiderRequests'))
               .toList();
 
           if (unmatchedRequests.isEmpty) {
@@ -83,7 +105,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                   if (user == null) return;
                   
                   await rideProvider.loadDetailedCard(
-                    cardType: request['cardType'].toString().replaceAll('-', '_'),
+                    type: request['type'].toString().replaceAll('-', '_'),
                     userId: user.uid,
                     cardId: request['id'].toString(),
                   );
