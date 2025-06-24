@@ -199,29 +199,6 @@ class RideService {
     }
   }
 
-  // Get available rides
-  Future<List<RideOffer>> getAvailableRides({
-    String? startLocation,
-    String? endLocation,
-    DateTime? date,
-  }) async {
-    debugPrint('RideService: Getting available rides');
-    try {
-      final queryParams = {
-        if (startLocation != null) 'startLocation': startLocation,
-        if (endLocation != null) 'endLocation': endLocation,
-        if (date != null) 'date': date.toIso8601String(),
-      };
-      final queryString = Uri(queryParameters: queryParams).query;
-      final response = await _apiService.get('/rides/available?$queryString');
-      debugPrint('RideService: Got response: $response');
-      return (response as List).map((json) => RideOffer.fromJson(json)).toList();
-    } catch (e) {
-      debugPrint('RideService: Error getting available rides: $e');
-      throw Exception('Failed to get available rides: $e');
-    }
-  }
-
   // Get user's ride requests
   Future<List<dynamic>> getUserRideRequests() async {
     debugPrint('RideService: Fetching user ride requests');
@@ -285,6 +262,39 @@ class RideService {
     } catch (e) {
       debugPrint('RideService: Error getting ride details: $e');
       throw Exception('Failed to get ride details: $e');
+    }
+  }
+
+  // Get summarized ride request card data
+  Future<List<Map<String, dynamic>>> getUserRideRequestCards() async {
+    try {
+      final requests = await getUserRideRequests();
+      return requests.map<Map<String, dynamic>>((req) {
+        final isMatched = req['matched'] == true;
+        return {
+          'id': req['riderId'] ?? req['id'],
+          'pickupAddress': req['pickupAddress'] ?? req['sourceAddress'],
+          'dropoffAddress': req['dropoffAddress'] ?? req['destinationAddress'],
+          'tripDate': req['tripDate'] ?? req['pickupTime'] ?? req['earliestDepartureTime'],
+          'matched': isMatched,
+          'driverName': isMatched ? req['driverName'] : null,
+        };
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Get full ride request detail by id (mock only for now)
+  Future<Map<String, dynamic>?> getRideRequestDetail(String id) async {
+    try {
+      final requests = await getUserRideRequests();
+      return requests.firstWhere(
+        (req) => (req['riderId'] ?? req['id']) == id,
+        orElse: () => null,
+      );
+    } catch (e) {
+      return null;
     }
   }
 } 

@@ -77,20 +77,24 @@ class ActivityCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '${request['pickupAddress']} → ${request['dropoffAddress']}',
+                      '${request['sourceAddress'] ?? request['pickupAddress'] ?? '-'} → ${request['destinationAddress'] ?? request['dropoffAddress'] ?? '-'}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, letterSpacing: 0.1),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.person, color: Colors.blue[700], size: 18),
-                  const SizedBox(width: 4),
-                  Text(request['driverName'] ?? '', style: TextStyle(color: Colors.blue[700], fontSize: 14, fontWeight: FontWeight.w500)),
-                ],
-              ),
+              if (request['driverFirstName'] != null || request['driverName'] != null)
+                Row(
+                  children: [
+                    Icon(Icons.person, color: Colors.blue[700], size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      request['driverName'] ?? '${request['driverFirstName'] ?? ''} ${request['driverLastName'] ?? ''}',
+                      style: TextStyle(color: Colors.blue[700], fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -100,11 +104,11 @@ class ActivityCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        formatDateTimeReadable(DateTime.parse(request['pickupTime'])),
+                        formatDateTimeReadable(DateTime.tryParse(request['createdAt'] ?? request['pickupTime'] ?? request['tripDate'] ?? '') ?? DateTime.now()),
                         style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                       Text(
-                        timeago.format(DateTime.parse(request['pickupTime']), allowFromNow: true),
+                        timeago.format(DateTime.tryParse(request['createdAt'] ?? request['pickupTime'] ?? request['tripDate'] ?? '') ?? DateTime.now(), allowFromNow: true),
                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
@@ -150,7 +154,7 @@ class ActivityCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '${request['sourceAddress']} → ${request['destinationAddress']}',
+                      '${request['sourceAddress'] ?? '-'} → ${request['destinationAddress'] ?? '-'}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, letterSpacing: 0.1),
                     ),
                   ),
@@ -165,11 +169,11 @@ class ActivityCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        formatDateTimeReadable(DateTime.parse(request['earliestDepartureTime'])),
+                        formatDateTimeReadable(DateTime.tryParse(request['createdAt'] ?? request['earliestDepartureTime'] ?? '') ?? DateTime.now()),
                         style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                       Text(
-                        timeago.format(DateTime.parse(request['earliestDepartureTime']), allowFromNow: true),
+                        timeago.format(DateTime.tryParse(request['createdAt'] ?? request['earliestDepartureTime'] ?? '') ?? DateTime.now(), allowFromNow: true),
                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
@@ -203,11 +207,9 @@ class ActivityCard extends StatelessWidget {
   }
 
   Widget _buildDriverOfferCard(BuildContext context) {
-    final offer = data as RideOffer;
-    final matchedRiders = offer.extra != null && offer.extra!['matchedRiders'] is List
-        ? (offer.extra!['matchedRiders'] as List)
-        : [];
-    final remainingCapacity = offer.capacity - matchedRiders.length;
+    final offer = data as Map<String, dynamic>;
+    final remainingCapacity = offer['remainingCapacity'] ?? '-';
+    final capacity = offer['capacity'] ?? '-';
     return InkWell(
       onTap: onTap,
       child: Card(
@@ -238,7 +240,7 @@ class ActivityCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '${offer.sourceAddress} → ${offer.destinationAddress}',
+                      '${offer['sourceAddress'] ?? '-'} → ${offer['destinationAddress'] ?? '-'}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, letterSpacing: 0.1),
                     ),
                   ),
@@ -253,11 +255,11 @@ class ActivityCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        formatDateTimeReadable(offer.departureTime),
+                        formatDateTimeReadable(DateTime.tryParse(offer['createdAt'] ?? '') ?? DateTime.now()),
                         style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                       Text(
-                        timeago.format(offer.departureTime, allowFromNow: true),
+                        timeago.format(DateTime.tryParse(offer['createdAt'] ?? '') ?? DateTime.now(), allowFromNow: true),
                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
@@ -266,19 +268,8 @@ class ActivityCard extends StatelessWidget {
                   Icon(Icons.people, color: Colors.grey[600], size: 18),
                   const SizedBox(width: 4),
                   Text(
-                    '$remainingCapacity/${offer.capacity} seats left',
+                    '$remainingCapacity/$capacity seats left',
                     style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.person, color: Colors.grey[600], size: 18),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Matched: ${matchedRiders.length}',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
                   ),
                 ],
               ),

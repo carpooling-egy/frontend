@@ -9,7 +9,7 @@ import 'package:frontend/services/api/api_service.dart';
 import 'package:frontend/services/api/profile_service.dart';
 import 'package:frontend/providers/profile_provider.dart';
 import 'package:frontend/providers/ride_provider.dart';
-import 'package:frontend/services/api/ride_service.dart';
+import 'package:frontend/services/api/trip_service.dart';
 import 'package:frontend/ui/screens/profile_screen.dart';
 import 'package:http/http.dart' as http;
 
@@ -47,14 +47,14 @@ class MyApp extends StatelessWidget {
             context.read<ProfileService>(),
           ),
         ),
-        Provider<RideService>(
-          create: (context) => RideService(
+        Provider<TripService>(
+          create: (context) => TripService(
             context.read<ApiService>(),
           ),
         ),
         ChangeNotifierProvider<RideProvider>(
           create: (context) => RideProvider(
-            context.read<RideService>(),
+            context.read<TripService>(),
           ),
         ),
       ],

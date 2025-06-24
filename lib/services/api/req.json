@@ -1,0 +1,150 @@
+cards:
+GET http://trip-management/summarized-cards/{userId}
+// List of cards with their type
+data: 
+{
+    "driver-offers": [
+        {
+            'id': '125',
+            'type': 'driver-offer',
+            'sourceAddress': 'Tahrir Square',
+            'destinationAddress': 'Egyptian Museum',
+            'createdAt': '2025-06-21T21:29:35.328572Z',
+            'capacity': 3,
+            'remainingCapacity': 2, // Additional field to be added
+        }
+    ],
+
+    "unmatched-rider-requests": [
+        {
+            'id': '124',
+            'type': 'rider-request',
+            'sourceAddress': 'Tahrir Square',
+            'destinationAddress': 'Egyptian Museum',
+            'createdAt': '2025-06-21T21:29:35.328572Z',
+            'matched': false,
+        }
+    ],
+
+    "matched-rider-requests": [
+        {
+            'id': '123',
+            'type': 'rider-request', // Additional field to be added
+            'sourceAddress': 'Tahrir Square, Cairo, Egypt',
+            'destinationAddress': 'Zamalek, Cairo, Egypt',
+            'createdAt': '2025-06-22T10:30:00Z',
+            'matched': true,
+            'driverFirstName': 'Ahmed',
+            'driverLastName': 'Mostafa',
+        }
+    ]
+}
+
+
+Details cards:
+in case of detailed cards
+Template: GET http://trip-management/detailed-card/{cardType}
+the 2 endpoints will be:
+- GET http://trip-management/detailed-card/rider-request/
+- GET http://trip-management/detailed-card/driver-offer/
+
+body:{
+    'userId': 'user123',
+    'cardId': '123',
+}
+
+in case of matched rider card:
+ {
+    'id': 'r12345',
+    'createdAt': '2025-06-22T10:30:00Z',
+    'pickupLatitude': 30.0444,
+    'pickupLongitude': 31.2357,
+    'pickupAddress': 'Tahrir Square, Cairo, Egypt',
+    'dropoffLatitude': 30.0611,
+    'dropoffLongitude': 31.2195,
+    'dropoffAddress': 'Zamalek, Cairo, Egypt',
+    'pickupTime': '2025-06-22T10:45:00Z',
+    'dropoffTime': '2025-06-22T11:15:00Z',
+    'driverFirstName': 'Ahmed',
+    'driverLastName': 'Mostafa',
+    'driverGender': 'MALE',
+    'sameGender': false,
+    'matched': true,
+  },
+
+
+
+  ------------------------------------------------------------
+
+
+
+  in case of unmatched rider card:
+  {
+    'id': 'rdr-req-2',
+    'sourceLatitude': 30.05000000,
+    'sourceLongitude': 31.24000000,
+    'sourceAddress': 'Tahrir Square',
+    'destinationLatitude': 30.01310000,
+    'destinationLongitude': 31.20890000,
+    'destinationAddress': 'Egyptian Museum',
+    'sameGender': false,
+    'createdAt': '2025-06-21T21:29:35.328572Z',
+    'earliestDepartureTime': '2025-06-21T22:29:35.328572Z',
+    'latestArrivalTime': '2025-06-21T23:29:35.328572Z',
+    'maxWalkingTimeMinutes': 5,
+    'numberOfRiders': 1,
+    'matched': false,
+  },
+
+
+
+  ------------------------------------------------------------
+
+
+
+
+  in case of the driver offer card:
+    {
+        id: 'drv-offer-1',
+        sourceAddress: 'Cairo Tower',
+        destinationAddress: 'Egyptian Museum',
+        departureTime: DateTime.parse('2025-06-21T22:29:35.328572Z'),
+        maxEstimatedArrivalTime: DateTime.parse('2025-06-21T23:29:35.328572Z'),
+        detourTimeMinutes: 15,
+        capacity: 3,
+        sameGender: false,
+        sourceLatitude: 30.0444,
+        sourceLongitude: 31.2357,
+        destinationLatitude: 30.0131,
+        destinationLongitude: 31.2089,
+        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+        'matchedRiders': [
+            {
+                'riderFirstName': 'Placeholder Name',
+                'riderLastName': 'Placeholder Last Name',
+                'riderGender': 'male',
+                'pickupTime': '2025-06-21T22:39:35.328572Z',
+                'dropoffTime': '2025-06-21T23:19:35.328572Z',
+                'pickupLatitude': 30.04600000,
+                'pickupLongitude': 31.23650000,
+                'pickupAddress': "Cairo Opera House",
+                'dropoffLatitude': 30.01310000,
+                'dropoffLongitude': 31.20890000,
+                'dropoffAddress': "Egyptian Museum",
+            }
+        ],
+        'path': [
+            {
+            'type': 'pickup',
+            'reqId': 'user-rdr-1',
+            'latitude': 30.046,
+            'longitude': 31.2365,
+            },
+            {
+            'type': 'dropoff',
+            'reqId': 'user-rdr-1',
+            'latitude': 30.0131,
+            'longitude': 31.2089,
+            }
+        ]
+    },

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/models/ride_offer.dart';
 import 'package:frontend/utils/date_time_utils.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class ActivityDetailScreen extends StatelessWidget {
-  final dynamic activity;
+  final Map<String, dynamic> activity;
   final String type; // 'offer', 'request_matched', 'request_unmatched'
 
   const ActivityDetailScreen({
@@ -27,11 +26,9 @@ class ActivityDetailScreen extends StatelessWidget {
   }
 
   Widget _buildDetails() {
-    if (type == 'offer' && activity is RideOffer) {
-      final offer = activity as RideOffer;
-      final matchedRiders = offer.extra != null && offer.extra!['matchedRiders'] is List
-          ? (offer.extra!['matchedRiders'] as List)
-          : [];
+    if (type == 'offer') {
+      final offer = activity;
+      final matchedRiders = offer['matchedRiders'] is List ? offer['matchedRiders'] as List : [];
       return SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +45,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.location_on, color: Colors.green),
                 const SizedBox(width: 6),
-                Expanded(child: Text('From: ${offer.sourceAddress}', style: const TextStyle(fontSize: 16))),
+                Expanded(child: Text('From: ${offer['sourceAddress'] ?? '-'}', style: const TextStyle(fontSize: 16))),
               ],
             ),
             const SizedBox(height: 6),
@@ -56,7 +53,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.flag, color: Colors.red),
                 const SizedBox(width: 6),
-                Expanded(child: Text('To: ${offer.destinationAddress}', style: const TextStyle(fontSize: 16))),
+                Expanded(child: Text('To: ${offer['destinationAddress'] ?? '-'}', style: const TextStyle(fontSize: 16))),
               ],
             ),
             const SizedBox(height: 10),
@@ -67,8 +64,8 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Departure: ${formatDateTimeReadable(offer.departureTime)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(offer.departureTime, allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text('Departure: ${formatDateTimeReadable(DateTime.tryParse(offer['departureTime'] ?? offer['createdAt'] ?? '') ?? DateTime.now())}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    Text(timeago.format(DateTime.tryParse(offer['departureTime'] ?? offer['createdAt'] ?? '') ?? DateTime.now() as DateTime, allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ],
@@ -78,7 +75,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.event_seat, color: Colors.purple),
                 const SizedBox(width: 6),
-                Text('Capacity: ${offer.capacity}', style: const TextStyle(fontSize: 15)),
+                Text('Capacity: ${offer['capacity'] ?? '-'}', style: const TextStyle(fontSize: 15)),
               ],
             ),
             const SizedBox(height: 24),
@@ -98,11 +95,11 @@ class ActivityDetailScreen extends StatelessWidget {
                         children: [
                           const Icon(Icons.person, color: Colors.blueGrey),
                           const SizedBox(width: 6),
-                          Text('Name: ${rider['riderName'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                          Text('Name: ${rider['riderFirstName'] ?? rider['riderName'] ?? ''} ${rider['riderLastName'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
                           const SizedBox(width: 12),
                           Icon(
-                            rider['riderGender'] == 'male' ? Icons.male : Icons.female,
-                            color: rider['riderGender'] == 'male' ? Colors.blue : Colors.pink,
+                            (rider['riderGender']?.toString().toLowerCase() == 'male') ? Icons.male : Icons.female,
+                            color: (rider['riderGender']?.toString().toLowerCase() == 'male') ? Colors.blue : Colors.pink,
                           ),
                         ],
                       ),
@@ -111,7 +108,7 @@ class ActivityDetailScreen extends StatelessWidget {
                         children: [
                           const Icon(Icons.location_on, color: Colors.green, size: 18),
                           const SizedBox(width: 4),
-                          Expanded(child: Text('Pickup: ${rider['pickupAddress'] ?? ''}', style: const TextStyle(fontSize: 14))),
+                          Expanded(child: Text('Pickup: ${rider['pickupAddress'] ?? '-'}', style: const TextStyle(fontSize: 14))),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -122,8 +119,8 @@ class ActivityDetailScreen extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('at ${formatDateTimeReadable(rider['pickupTime'] != null ? DateTime.parse(rider['pickupTime']) : DateTime.now())}', style: const TextStyle(fontSize: 14)),
-                              Text(rider['pickupTime'] != null ? timeago.format(DateTime.parse(rider['pickupTime']), allowFromNow: true) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              Text('at ${formatDateTimeReadable(DateTime.tryParse(rider['pickupTime'] ?? '') ?? DateTime.now())}', style: const TextStyle(fontSize: 14)),
+                              Text(rider['pickupTime'] != null ? timeago.format(DateTime.tryParse(rider['pickupTime']) ?? DateTime.now() as DateTime, allowFromNow: true) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                             ],
                           ),
                         ],
@@ -133,7 +130,7 @@ class ActivityDetailScreen extends StatelessWidget {
                         children: [
                           const Icon(Icons.flag, color: Colors.red, size: 18),
                           const SizedBox(width: 4),
-                          Expanded(child: Text('Dropoff: ${rider['dropoffAddress'] ?? ''}', style: const TextStyle(fontSize: 14))),
+                          Expanded(child: Text('Dropoff: ${rider['dropoffAddress'] ?? '-'}', style: const TextStyle(fontSize: 14))),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -144,8 +141,8 @@ class ActivityDetailScreen extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('at ${formatDateTimeReadable(rider['dropoffTime'] != null ? DateTime.parse(rider['dropoffTime']) : DateTime.now())}', style: const TextStyle(fontSize: 14)),
-                              Text(rider['dropoffTime'] != null ? timeago.format(DateTime.parse(rider['dropoffTime']), allowFromNow: true) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              Text('at ${formatDateTimeReadable(DateTime.tryParse(rider['dropoffTime'] ?? '') ?? DateTime.now())}', style: const TextStyle(fontSize: 14)),
+                              Text(rider['dropoffTime'] != null ? timeago.format(DateTime.tryParse(rider['dropoffTime']) ?? DateTime.now() as DateTime, allowFromNow: true) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                             ],
                           ),
                         ],
@@ -172,7 +169,7 @@ class ActivityDetailScreen extends StatelessWidget {
           ],
         ),
       );
-    } else if (type == 'request_matched' && activity is Map<String, dynamic>) {
+    } else if (type == 'request_matched') {
       final req = activity;
       return SingleChildScrollView(
         child: Column(
@@ -212,7 +209,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.location_on, color: Colors.green),
                 const SizedBox(width: 6),
-                Expanded(child: Text('Pickup: ${req['pickupAddress']}', style: const TextStyle(fontSize: 16))),
+                Expanded(child: Text('Pickup: ${req['pickupAddress'] ?? req['sourceAddress'] ?? '-'}', style: const TextStyle(fontSize: 16))),
               ],
             ),
             const SizedBox(height: 6),
@@ -220,7 +217,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.flag, color: Colors.red),
                 const SizedBox(width: 6),
-                Expanded(child: Text('Dropoff: ${req['dropoffAddress']}', style: const TextStyle(fontSize: 16))),
+                Expanded(child: Text('Dropoff: ${req['dropoffAddress'] ?? req['destinationAddress'] ?? '-'}', style: const TextStyle(fontSize: 16))),
               ],
             ),
             const SizedBox(height: 10),
@@ -231,8 +228,8 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Pickup Time: ${formatDateTimeReadable(DateTime.parse(req['pickupTime']))}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(DateTime.parse(req['pickupTime']), allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text('Pickup Time: ${formatDateTimeReadable(DateTime.tryParse(req['pickupTime'] ?? req['createdAt'] ?? req['tripDate'] ?? '') ?? DateTime.now())}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    Text(timeago.format(DateTime.tryParse(req['pickupTime'] ?? req['createdAt'] ?? req['tripDate'] ?? '') ?? DateTime.now() as DateTime, allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ],
@@ -245,8 +242,8 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Dropoff Time: ${formatDateTimeReadable(DateTime.parse(req['dropoffTime']))}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(DateTime.parse(req['dropoffTime']), allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text('Dropoff Time: ${formatDateTimeReadable(DateTime.tryParse(req['dropoffTime'] ?? '') ?? DateTime.now())}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    Text(timeago.format(DateTime.tryParse(req['dropoffTime'] ?? '') ?? DateTime.now() as DateTime, allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ],
@@ -264,7 +261,7 @@ class ActivityDetailScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.person, color: Colors.blue[700]),
                     const SizedBox(width: 8),
-                    Text(req['driverName'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                    Text(req['driverName'] ?? '${req['driverFirstName'] ?? ''} ${req['driverLastName'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                     const SizedBox(width: 16),
                     Icon(
                       (req['driverGender']?.toString().toLowerCase() == 'male') ? Icons.male : Icons.female,
@@ -290,7 +287,7 @@ class ActivityDetailScreen extends StatelessWidget {
           ],
         ),
       );
-    } else if (type == 'request_unmatched' && activity is Map<String, dynamic>) {
+    } else if (type == 'request_unmatched') {
       final req = activity;
       return SingleChildScrollView(
         child: Column(
@@ -308,7 +305,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.location_on, color: Colors.green),
                 const SizedBox(width: 6),
-                Expanded(child: Text('From: ${req['sourceAddress']}', style: const TextStyle(fontSize: 16))),
+                Expanded(child: Text('From: ${req['sourceAddress'] ?? '-'}', style: const TextStyle(fontSize: 16))),
               ],
             ),
             const SizedBox(height: 6),
@@ -316,7 +313,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.flag, color: Colors.red),
                 const SizedBox(width: 6),
-                Expanded(child: Text('To: ${req['destinationAddress']}', style: const TextStyle(fontSize: 16))),
+                Expanded(child: Text('To: ${req['destinationAddress'] ?? '-'}', style: const TextStyle(fontSize: 16))),
               ],
             ),
             const SizedBox(height: 10),
@@ -327,8 +324,8 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Earliest Departure: ${formatDateTimeReadable(DateTime.parse(req['earliestDepartureTime']))}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(DateTime.parse(req['earliestDepartureTime']), allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text('Earliest Departure: ${formatDateTimeReadable(DateTime.tryParse(req['earliestDepartureTime'] ?? req['createdAt'] ?? '') ?? DateTime.now())}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    Text(timeago.format(DateTime.tryParse(req['earliestDepartureTime'] ?? req['createdAt'] ?? '') ?? DateTime.now() as DateTime, allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ],
@@ -341,8 +338,8 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Latest Arrival: ${formatDateTimeReadable(DateTime.parse(req['latestArrivalTime']))}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(DateTime.parse(req['latestArrivalTime']), allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text('Latest Arrival: ${formatDateTimeReadable(DateTime.tryParse(req['latestArrivalTime'] ?? '') ?? DateTime.now())}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    Text(timeago.format(DateTime.tryParse(req['latestArrivalTime'] ?? '') ?? DateTime.now() as DateTime, allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ],
@@ -352,7 +349,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.group, color: Colors.purple),
                 const SizedBox(width: 6),
-                Text('Number of Riders: ${req['numberOfRiders']}', style: const TextStyle(fontSize: 15)),
+                Text('Number of Riders: ${req['numberOfRiders'] ?? '-'}', style: const TextStyle(fontSize: 15)),
               ],
             ),
             const SizedBox(height: 10),
@@ -360,7 +357,7 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.directions_walk, color: Colors.teal),
                 const SizedBox(width: 6),
-                Text('Max Walking Time: ${req['maxWalkingTimeMinutes']} min', style: const TextStyle(fontSize: 15)),
+                Text('Max Walking Time: ${req['maxWalkingTimeMinutes'] ?? '-'} min', style: const TextStyle(fontSize: 15)),
               ],
             ),
             const SizedBox(height: 10),

@@ -38,8 +38,11 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadProfileImage();
     _loadProfileData();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RideProvider>().loadAllUserRides();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final user = _auth.currentUser;
+      if (user != null) {
+        await context.read<RideProvider>().loadSummarizedCards(user.uid);
+      }
     });
   }
 
@@ -301,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildRecentActivity() {
     return Consumer<RideProvider>(
       builder: (context, rideProvider, child) {
-        if (rideProvider.isLoading) {
+        if (rideProvider.isLoadingSummarized) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -376,10 +379,9 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        final offers = rideProvider.userRideOffers;
-        final requests = rideProvider.userRideRequests;
+        final cards = rideProvider.summarizedCards;
 
-        if (offers.isEmpty && requests.isEmpty) {
+        if (cards.isEmpty) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -442,8 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              ...requests.map((request) => _buildActivityItem(request)),
-              ...offers.map((offer) => _buildRideOfferItem(offer)),
+              ...cards.map((card) => _buildSummarizedCard(context, card)),
             ],
           ),
         );
@@ -451,77 +452,40 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActivityItem(Map<String, dynamic> request) {
-    // Matched rider request
-    final isMatchedRider = request['matched'] == true;
-    if (isMatchedRider) {
-      return ActivityCard(
-        type: ActivityCardType.matchedRider,
-        data: request,
-        onTap: () {
+  Widget _buildSummarizedCard(BuildContext context, Map<String, dynamic> card) {
+    ActivityCardType type;
+    if (card['cardType'].toString().contains('driver-offer')) {
+      type = ActivityCardType.driverOffer;
+    } else if (card['cardType'].toString().contains('matched')) {
+      type = ActivityCardType.matchedRider;
+    } else {
+      type = ActivityCardType.unmatchedRider;
+    }
+    return ActivityCard(
+      type: type,
+      data: card,
+      onTap: () async {
+        final user = _auth.currentUser;
+        if (user == null) return;
+        final provider = context.read<RideProvider>();
+        await provider.loadDetailedCard(
+          cardType: card['cardType'].toString().replaceAll('-', '_'),
+          userId: user.uid,
+          cardId: card['id'].toString(),
+        );
+        if (provider.detailedCard != null) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ActivityDetailScreen(
-                activity: request,
-                type: 'request_matched',
+                activity: provider.detailedCard!,
+                type: type == ActivityCardType.driverOffer
+                    ? 'offer'
+                    : (type == ActivityCardType.matchedRider ? 'request_matched' : 'request_unmatched'),
               ),
             ),
           );
-        },
-      );
-    }
-    // Detect unmatched rider request
-    final isUnmatchedRider = request['matched'] == false;
-    if (isUnmatchedRider) {
-      return ActivityCard(
-        type: ActivityCardType.unmatchedRider,
-        data: request,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ActivityDetailScreen(
-                activity: request,
-                type: 'request_unmatched',
-              ),
-            ),
-          );
-        },
-      );
-    }
-    String type = (request['matchedDriver'] != null) ? 'request_matched' : 'request_unmatched';
-    return ActivityCard(
-      type: ActivityCardType.unmatchedRider,
-      data: request,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ActivityDetailScreen(
-              activity: request,
-              type: type,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildRideOfferItem(RideOffer offer) {
-    return ActivityCard(
-      type: ActivityCardType.driverOffer,
-      data: offer,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ActivityDetailScreen(
-              activity: offer,
-              type: 'offer',
-            ),
-          ),
-        );
+        }
       },
     );
   }

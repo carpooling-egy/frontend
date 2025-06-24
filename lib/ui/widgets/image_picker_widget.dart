@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../services/image_service.dart';
+import 'package:frontend/services/image_service.dart';
 
 class ImagePickerWidget extends StatefulWidget {
   final String? initialImagePath;

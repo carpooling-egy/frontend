@@ -5,9 +5,26 @@ import 'package:frontend/ui/screens/activity_detail.dart';
 import 'package:frontend/utils/date_time_utils.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:frontend/ui/widgets/activity_card.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class PendingRequestsScreen extends StatelessWidget {
+class PendingRequestsScreen extends StatefulWidget {
   const PendingRequestsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<PendingRequestsScreen> createState() => _PendingRequestsScreenState();
+}
+
+class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await context.read<RideProvider>().loadSummarizedCards(user.uid);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,31 +32,77 @@ class PendingRequestsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Pending Requests')),
       body: Consumer<RideProvider>(
         builder: (context, rideProvider, child) {
-          final unmatchedRequests = rideProvider.userRideRequests.where((r) => r['matched'] == false).toList();
+          if (rideProvider.isLoadingSummarized) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (rideProvider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text('Error: ${rideProvider.error}'),
+                ],
+              ),
+            );
+          }
+
+          final unmatchedRequests = rideProvider.summarizedCards
+              .where((card) => card['cardType'].toString().contains('unmatched-rider'))
+              .toList();
 
           if (unmatchedRequests.isEmpty) {
-            return const Center(child: Text('No pending requests.'));
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.hourglass_empty, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No pending requests',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
           return ListView(
             padding: const EdgeInsets.all(16),
-            children: [
-              ...unmatchedRequests.map((request) => ActivityCard(
+            children: unmatchedRequests.map((request) {
+              return ActivityCard(
                 type: ActivityCardType.unmatchedRider,
                 data: request,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ActivityDetailScreen(
-                        activity: request,
-                        type: 'request_unmatched',
-                      ),
-                    ),
+                onTap: () async {
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user == null) return;
+                  
+                  await rideProvider.loadDetailedCard(
+                    cardType: request['cardType'].toString().replaceAll('-', '_'),
+                    userId: user.uid,
+                    cardId: request['id'].toString(),
                   );
+                  
+                  if (rideProvider.detailedCard != null) {
+                    if (!mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ActivityDetailScreen(
+                          activity: rideProvider.detailedCard!,
+                          type: 'request_unmatched',
+                        ),
+                      ),
+                    );
+                  }
                 },
-              )),
-            ],
+              );
+            }).toList(),
           );
         },
       ),

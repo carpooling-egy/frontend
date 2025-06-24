@@ -1,114 +1,68 @@
 import 'package:flutter/foundation.dart';
-import 'package:frontend/models/ride_offer.dart';
-import 'package:frontend/services/api/ride_service.dart';
+import 'package:frontend/services/api/trip_service.dart';
 
 class RideProvider with ChangeNotifier {
-  final RideService _rideService;
-  List<RideOffer> _userRideOffers = [];
-  List<dynamic> _userRideRequests = [];
-  bool _isLoadingOffers = false;
-  bool _isLoadingRequests = false;
+  final TripService _tripService;
+
+  List<dynamic> _summarizedCards = [];
+  Map<String, dynamic>? _detailedCard;
+  bool _isLoadingSummarized = false;
+  bool _isLoadingDetail = false;
   String? _error;
 
-  RideProvider(this._rideService);
+  RideProvider(this._tripService);
 
-  List<RideOffer> get userRideOffers => _userRideOffers;
-  List<dynamic> get userRideRequests => _userRideRequests;
-  bool get isLoading => _isLoadingOffers || _isLoadingRequests;
+  List<dynamic> get summarizedCards => _summarizedCards;
+  Map<String, dynamic>? get detailedCard => _detailedCard;
+  bool get isLoadingSummarized => _isLoadingSummarized;
+  bool get isLoadingDetail => _isLoadingDetail;
   String? get error => _error;
 
-  Future<void> loadUserRideOffers() async {
+  Future<void> loadSummarizedCards(String userId) async {
+    _isLoadingSummarized = true;
+    _error = null;
+    notifyListeners();
     try {
-      _isLoadingOffers = true;
-      _error = null; // Clear any previous errors
-      notifyListeners();
-      
-      final offers = await _rideService.getUserRideOffers();
-      _userRideOffers = offers;
-      
-      _isLoadingOffers = false;
+      final cards = await _tripService.getSummarizedCards(userId);
+      // Flatten all card types into a single list for display
+      _summarizedCards = [];
+      cards.forEach((key, value) {
+        if (value is List) {
+          for (var card in value) {
+            card['cardType'] = key; // Attach type for later use
+            _summarizedCards.add(card);
+          }
+        }
+      });
+      _isLoadingSummarized = false;
       notifyListeners();
     } catch (e) {
-      _isLoadingOffers = false;
-      // Don't set error when using mock data
-      if (!e.toString().contains('mock data')) {
-        _error = e.toString();
-      }
+      _isLoadingSummarized = false;
+      _error = e.toString();
       notifyListeners();
     }
   }
 
-  Future<void> loadUserRideRequests() async {
+  Future<void> loadDetailedCard({
+    required String cardType,
+    required String userId,
+    required String cardId,
+  }) async {
+    _isLoadingDetail = true;
+    _error = null;
+    notifyListeners();
     try {
-      _isLoadingRequests = true;
-      _error = null; // Clear any previous errors
-      notifyListeners();
-      
-      final requests = await _rideService.getUserRideRequests();
-      _userRideRequests = requests;
-      
-      _isLoadingRequests = false;
+      final detail = await _tripService.getDetailedCard(
+        cardType: cardType,
+        userId: userId,
+        cardId: cardId,
+      );
+      _detailedCard = detail;
+      _isLoadingDetail = false;
       notifyListeners();
     } catch (e) {
-      _isLoadingRequests = false;
-      // Don't set error when using mock data
-      if (!e.toString().contains('mock data')) {
-        _error = e.toString();
-      }
-      notifyListeners();
-    }
-  }
-
-  // Load both offers and requests together
-  Future<void> loadAllUserRides() async {
-    try {
-      _isLoadingOffers = true;
-      _isLoadingRequests = true;
-      _error = null;
-      notifyListeners();
-      
-      // Load both in parallel
-      await Future.wait([
-        _loadUserRideOffersInternal(),
-        _loadUserRideRequestsInternal(),
-      ]);
-      
-    } catch (e) {
-      _isLoadingOffers = false;
-      _isLoadingRequests = false;
-      if (!e.toString().contains('mock data')) {
-        _error = e.toString();
-      }
-      notifyListeners();
-    }
-  }
-
-  Future<void> _loadUserRideOffersInternal() async {
-    try {
-      final offers = await _rideService.getUserRideOffers();
-      _userRideOffers = offers;
-      _isLoadingOffers = false;
-      notifyListeners();
-    } catch (e) {
-      _isLoadingOffers = false;
-      if (!e.toString().contains('mock data')) {
-        _error = e.toString();
-      }
-      notifyListeners();
-    }
-  }
-
-  Future<void> _loadUserRideRequestsInternal() async {
-    try {
-      final requests = await _rideService.getUserRideRequests();
-      _userRideRequests = requests;
-      _isLoadingRequests = false;
-      notifyListeners();
-    } catch (e) {
-      _isLoadingRequests = false;
-      if (!e.toString().contains('mock data')) {
-        _error = e.toString();
-      }
+      _isLoadingDetail = false;
+      _error = e.toString();
       notifyListeners();
     }
   }
