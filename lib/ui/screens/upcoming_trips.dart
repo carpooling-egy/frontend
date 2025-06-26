@@ -21,7 +21,7 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await context.read<RideProvider>().loadSummarizedCards(user.uid);
+        await context.read<RideProvider>().loadUpcomingTrips(user.uid);
       }
     });
   }
@@ -72,11 +72,11 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
           }
 
           final matchedRequests = rideProvider.summarizedCards
-              .where((card) => card['type'].toString().contains('matchedRiderRequests'))
+              .where((card) => card['type'] == 'riderTrips')
               .toList();
 
           final driverOffers = rideProvider.summarizedCards
-              .where((card) => card['type'].toString().contains('driverOffers'))
+              .where((card) => card['type'] == 'driverTrips')
               .toList();
 
           if (matchedRequests.isEmpty && driverOffers.isEmpty) {

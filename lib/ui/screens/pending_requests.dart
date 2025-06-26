@@ -21,7 +21,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await context.read<RideProvider>().loadSummarizedCards(user.uid);
+        await context.read<RideProvider>().loadPendingRiderRequests(user.uid);
       }
     });
   }
@@ -72,7 +72,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
           }
 
           final unmatchedRequests = rideProvider.summarizedCards
-              .where((card) => card['type'].toString().contains('unmatchedRiderRequests'))
+              .where((card) => card['type'] == 'unmatched-rider-request')
               .toList();
 
           if (unmatchedRequests.isEmpty) {

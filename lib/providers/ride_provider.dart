@@ -67,4 +67,50 @@ class RideProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> loadUpcomingTrips(String userId) async {
+    _isLoadingSummarized = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final trips = await _tripService.getUpcomingTrips(userId);
+      _summarizedCards = trips.map((card) {
+        // For upcoming trips, we'll mark them as matched-rider-request or driver-offer
+        // based on their existing type or matched status
+        if (card['matched'] == true) {
+          card['type'] = 'matched-rider-request';
+        } else {
+          card['type'] = 'driver-offer';
+        }
+        return card;
+      }).toList();
+
+      _isLoadingSummarized = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoadingSummarized = false;
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadPendingRiderRequests(String userId) async {
+    _isLoadingSummarized = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final requests = await _tripService.getPendingRiderRequests(userId);
+      _summarizedCards = requests.map((card) {
+        card['type'] = 'unmatched-rider-request';
+        return card;
+      }).toList();
+      
+      _isLoadingSummarized = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoadingSummarized = false;
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
 } 
