@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/ride_offer.dart';
+import 'package:frontend/models/coordinate.dart';
+import 'package:frontend/ui/screens/trip_map.dart'; // kept
 import 'package:frontend/utils/date_time_utils.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:go_router/go_router.dart';
+
+import '../../models/labeled_waypoint.dart';
+import '../../routing/routes.dart';
 
 class ActivityDetailScreen extends StatelessWidget {
-  final dynamic activity;
+  final Map<String, dynamic> activity;
   final String type; // 'offer', 'request_matched', 'request_unmatched'
 
   const ActivityDetailScreen({
@@ -21,34 +27,92 @@ class ActivityDetailScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: _buildDetails(),
+        child: _buildDetails(context),
       ),
     );
   }
 
-  Widget _buildDetails() {
-    if (type == 'offer' && activity is RideOffer) {
-      final offer = activity as RideOffer;
-      final matchedRiders = offer.extra != null && offer.extra!['matchedRiders'] is List
-          ? (offer.extra!['matchedRiders'] as List)
-          : [];
+  List<LabeledWaypoint> _buildDriverWaypoints(Map<String, dynamic> offer) {
+    final rawPath = offer['path'] as List<dynamic>? ?? <dynamic>[];
+    final matchedRiders = (offer['matchedRiders'] as List<Map<String, dynamic>>?)
+        ?? <Map<String, dynamic>>[];
+
+    final fullPathWaypoints = <LabeledWaypoint>[];
+
+    fullPathWaypoints.add(
+      LabeledWaypoint(
+        coord: Coordinate(
+          offer['sourceLongitude'],
+          offer['sourceLatitude'],
+        ),
+        label: 'You',
+      ),
+    );
+
+    for (int i = 0; i < rawPath.length; i++) {
+      final pt = rawPath[i] as Map<String, dynamic>;
+      final riderName = '${matchedRiders[i]['riderFirstName'] ?? ''} ${matchedRiders[i]['riderLastName'] ?? ''}';
+      final lat =
+          (pt['latitude'] is num) ? (pt['latitude'] as num).toDouble() : 0.0;
+      final lon =
+          (pt['longitude'] is num) ? (pt['longitude'] as num).toDouble() : 0.0;
+
+      fullPathWaypoints.add(
+        LabeledWaypoint(
+          coord: Coordinate(lon, lat),
+          label: riderName,
+        ),
+      );
+    }
+
+    fullPathWaypoints.add(
+      LabeledWaypoint(
+        coord: Coordinate(
+          offer['destinationLongitude'],
+          offer['destinationLatitude'],
+        ),
+        label: 'You',
+      ),
+    );
+
+    return fullPathWaypoints;
+  }
+
+  Widget _buildDetails(BuildContext context) {
+    // ──────────────────────────────────────────────────────────────────────────
+    // DRIVER OFFER
+    // ──────────────────────────────────────────────────────────────────────────
+    if (type == 'offer') {
+      final offer = activity;
+      final matchedRiders = offer['matchedRiders'] as List<dynamic>? ?? <dynamic>[];
+
       return SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ------------- HEADER ------------------------------------------------
             Row(
               children: [
                 Icon(Icons.directions_car, color: Colors.blue[700]),
                 const SizedBox(width: 8),
-                const Text('You as a driver', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const Text(
+                  'You as a driver',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
               ],
             ),
             const SizedBox(height: 16),
+            // ------------- SOURCE / DESTINATION ----------------------------------
             Row(
               children: [
                 const Icon(Icons.location_on, color: Colors.green),
                 const SizedBox(width: 6),
-                Expanded(child: Text('From: ${offer.sourceAddress}', style: const TextStyle(fontSize: 16))),
+                Expanded(
+                  child: Text(
+                    'From: ${offer['sourceAddress']}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -56,10 +120,16 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.flag, color: Colors.red),
                 const SizedBox(width: 6),
-                Expanded(child: Text('To: ${offer.destinationAddress}', style: const TextStyle(fontSize: 16))),
+                Expanded(
+                  child: Text(
+                    'To: ${offer['destinationAddress']}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
+            // ------------- DEPARTURE --------------------------------------------
             Row(
               children: [
                 const Icon(Icons.access_time, color: Colors.orange),
@@ -67,104 +137,169 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Departure: ${formatDateTimeReadable(offer.departureTime)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(offer.departureTime, allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      'Departure: ${formatDateTimeReadable(offer['departureTime'])}',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      timeago.format(offer['departureTime'], allowFromNow: true),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 10),
+            // ------------- CAPACITY ---------------------------------------------
             Row(
               children: [
                 const Icon(Icons.event_seat, color: Colors.purple),
                 const SizedBox(width: 6),
-                Text('Capacity: ${offer.capacity}', style: const TextStyle(fontSize: 15)),
+                Text('Capacity: ${offer['capacity']}',
+                    style: const TextStyle(fontSize: 15)),
               ],
             ),
             const SizedBox(height: 24),
-            const Text('Matched Riders', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            // ------------- MATCHED RIDERS ----------------------------------------
+            const Text('Matched Riders',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 10),
             if (matchedRiders.isNotEmpty)
-              ...matchedRiders.map<Widget>((rider) => Card(
-                margin: const EdgeInsets.only(bottom: 14),
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.person, color: Colors.blueGrey),
-                          const SizedBox(width: 6),
-                          Text('Name: ${rider['riderName'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                          const SizedBox(width: 12),
-                          Icon(
-                            rider['riderGender'] == 'male' ? Icons.male : Icons.female,
-                            color: rider['riderGender'] == 'male' ? Colors.blue : Colors.pink,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, color: Colors.green, size: 18),
-                          const SizedBox(width: 4),
-                          Expanded(child: Text('Pickup: ${rider['pickupAddress'] ?? ''}', style: const TextStyle(fontSize: 14))),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time, color: Colors.orange, size: 18),
-                          const SizedBox(width: 4),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('at ${formatDateTimeReadable(rider['pickupTime'] != null ? DateTime.parse(rider['pickupTime']) : DateTime.now())}', style: const TextStyle(fontSize: 14)),
-                              Text(rider['pickupTime'] != null ? timeago.format(DateTime.parse(rider['pickupTime']), allowFromNow: true) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.flag, color: Colors.red, size: 18),
-                          const SizedBox(width: 4),
-                          Expanded(child: Text('Dropoff: ${rider['dropoffAddress'] ?? ''}', style: const TextStyle(fontSize: 14))),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time, color: Colors.orange, size: 18),
-                          const SizedBox(width: 4),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('at ${formatDateTimeReadable(rider['dropoffTime'] != null ? DateTime.parse(rider['dropoffTime']) : DateTime.now())}', style: const TextStyle(fontSize: 14)),
-                              Text(rider['dropoffTime'] != null ? timeago.format(DateTime.parse(rider['dropoffTime']), allowFromNow: true) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+              ...matchedRiders.map<Widget>(
+                (rider) => Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.person, color: Colors.blueGrey),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Name: ${rider['riderName'] ?? ''}',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(
+                              rider['riderGender'] == 'male'
+                                  ? Icons.male
+                                  : Icons.female,
+                              color: rider['riderGender'] == 'male'
+                                  ? Colors.blue
+                                  : Colors.pink,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on,
+                                color: Colors.green, size: 18),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'Pickup: ${rider['pickupAddress'] ?? ''}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.access_time,
+                                color: Colors.orange, size: 18),
+                            const SizedBox(width: 4),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'at ${formatDateTimeReadable(rider['pickupTime'] != null ? DateTime.parse(rider['pickupTime']) : DateTime.now())}',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                Text(
+                                  rider['pickupTime'] != null
+                                      ? timeago.format(
+                                          DateTime.parse(rider['pickupTime']),
+                                          allowFromNow: true)
+                                      : '',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.flag, color: Colors.red, size: 18),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'Dropoff: ${rider['dropoffAddress'] ?? ''}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.access_time,
+                                color: Colors.orange, size: 18),
+                            const SizedBox(width: 4),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'at ${formatDateTimeReadable(rider['dropoffTime'] != null ? DateTime.parse(rider['dropoffTime']) : DateTime.now())}',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                Text(
+                                  rider['dropoffTime'] != null
+                                      ? timeago.format(
+                                          DateTime.parse(rider['dropoffTime']),
+                                          allowFromNow: true)
+                                      : '',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ))
+              )
             else
               const Text('No matched riders yet.'),
+            // ------------- SHOW PATH BUTTON --------------------------------------
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => context.push(
+                  Routes.tripMap,
+                  extra: TripMapScreen.driver(
+                      fullPath: _buildDriverWaypoints(offer)),
+                ), // GoRouter navigation
                 icon: const Icon(Icons.map, color: Colors.white),
-                label: const Text('Show path on the map', style: TextStyle(color: Colors.white)),
+                label: const Text('Show path on the map',
+                    style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                   backgroundColor: Colors.black,
                 ),
               ),
@@ -172,8 +307,14 @@ class ActivityDetailScreen extends StatelessWidget {
           ],
         ),
       );
-    } else if (type == 'request_matched' && activity is Map<String, dynamic>) {
-      final req = activity;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // RIDER REQUEST (MATCHED)
+    // ──────────────────────────────────────────────────────────────────────────
+    else if (type == 'request_matched' && activity is Map<String, dynamic>) {
+      final req = activity as Map<String, dynamic>;
+
       return SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +322,8 @@ class ActivityDetailScreen extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.13),
                     borderRadius: BorderRadius.circular(8),
@@ -193,10 +335,9 @@ class ActivityDetailScreen extends StatelessWidget {
                       Text(
                         'Matched',
                         style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
                       ),
                     ],
                   ),
@@ -204,7 +345,9 @@ class ActivityDetailScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 Icon(Icons.person, color: Colors.deepOrange),
                 const SizedBox(width: 8),
-                const Text('You as a rider', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const Text('You as a rider',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               ],
             ),
             const SizedBox(height: 16),
@@ -212,7 +355,10 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.location_on, color: Colors.green),
                 const SizedBox(width: 6),
-                Expanded(child: Text('Pickup: ${req['pickupAddress']}', style: const TextStyle(fontSize: 16))),
+                Expanded(
+                  child: Text('Pickup: ${req['pickupAddress']}',
+                      style: const TextStyle(fontSize: 16)),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -220,7 +366,10 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.flag, color: Colors.red),
                 const SizedBox(width: 6),
-                Expanded(child: Text('Dropoff: ${req['dropoffAddress']}', style: const TextStyle(fontSize: 16))),
+                Expanded(
+                  child: Text('Dropoff: ${req['dropoffAddress']}',
+                      style: const TextStyle(fontSize: 16)),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -231,8 +380,16 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Pickup Time: ${formatDateTimeReadable(DateTime.parse(req['pickupTime']))}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(DateTime.parse(req['pickupTime']), allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      'Pickup Time: ${formatDateTimeReadable(DateTime.parse(req['pickupTime']))}',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      timeago.format(DateTime.parse(req['pickupTime']),
+                          allowFromNow: true),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
                   ],
                 ),
               ],
@@ -245,30 +402,47 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Dropoff Time: ${formatDateTimeReadable(DateTime.parse(req['dropoffTime']))}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(DateTime.parse(req['dropoffTime']), allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      'Dropoff Time: ${formatDateTimeReadable(DateTime.parse(req['dropoffTime']))}',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      timeago.format(DateTime.parse(req['dropoffTime']),
+                          allowFromNow: true),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            const Text('Driver Info', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            const Text('Driver Info',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 10),
             Card(
               margin: const EdgeInsets.only(bottom: 14),
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Row(
                   children: [
                     Icon(Icons.person, color: Colors.blue[700]),
                     const SizedBox(width: 8),
-                    Text(req['driverName'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                    Text(req['driverName'] ?? '',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 16)),
                     const SizedBox(width: 16),
                     Icon(
-                      (req['driverGender']?.toString().toLowerCase() == 'male') ? Icons.male : Icons.female,
-                      color: (req['driverGender']?.toString().toLowerCase() == 'male') ? Colors.blue : Colors.pink,
+                      (req['driverGender']?.toString().toLowerCase() == 'male')
+                          ? Icons.male
+                          : Icons.female,
+                      color: (req['driverGender']?.toString().toLowerCase() ==
+                              'male')
+                          ? Colors.blue
+                          : Colors.pink,
                     ),
                   ],
                 ),
@@ -277,12 +451,24 @@ class ActivityDetailScreen extends StatelessWidget {
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => context.push(
+                  Routes.tripMap,
+                  extra: TripMapScreen.rider(
+                      pickup: Coordinate(
+                          req['pickupLongitude'], req['pickupLatitude']),
+                      dropoff: Coordinate(
+                          req['dropoffLongitude'], req['dropoffLatitude']),
+                      riderName: 'You',
+                      showLegend: false),
+                ),
                 icon: const Icon(Icons.map, color: Colors.white),
-                label: const Text('Show path on the map', style: TextStyle(color: Colors.white)),
+                label: const Text('Show path on the map',
+                    style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                   backgroundColor: Colors.black,
                 ),
               ),
@@ -290,8 +476,14 @@ class ActivityDetailScreen extends StatelessWidget {
           ],
         ),
       );
-    } else if (type == 'request_unmatched' && activity is Map<String, dynamic>) {
-      final req = activity;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // RIDER REQUEST (UNMATCHED)
+    // ──────────────────────────────────────────────────────────────────────────
+    else if (type == 'request_unmatched' && activity is Map<String, dynamic>) {
+      final req = activity as Map<String, dynamic>;
+
       return SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,7 +492,9 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 Icon(Icons.person, color: Colors.deepOrange),
                 const SizedBox(width: 8),
-                const Text('You as a rider', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const Text('You as a rider',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               ],
             ),
             const SizedBox(height: 16),
@@ -308,7 +502,10 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.location_on, color: Colors.green),
                 const SizedBox(width: 6),
-                Expanded(child: Text('From: ${req['sourceAddress']}', style: const TextStyle(fontSize: 16))),
+                Expanded(
+                  child: Text('From: ${req['sourceAddress']}',
+                      style: const TextStyle(fontSize: 16)),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -316,7 +513,10 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.flag, color: Colors.red),
                 const SizedBox(width: 6),
-                Expanded(child: Text('To: ${req['destinationAddress']}', style: const TextStyle(fontSize: 16))),
+                Expanded(
+                  child: Text('To: ${req['destinationAddress']}',
+                      style: const TextStyle(fontSize: 16)),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -327,8 +527,17 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Earliest Departure: ${formatDateTimeReadable(DateTime.parse(req['earliestDepartureTime']))}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(DateTime.parse(req['earliestDepartureTime']), allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      'Earliest Departure: ${formatDateTimeReadable(DateTime.parse(req['earliestDepartureTime']))}',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      timeago.format(
+                          DateTime.parse(req['earliestDepartureTime']),
+                          allowFromNow: true),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
                   ],
                 ),
               ],
@@ -341,8 +550,16 @@ class ActivityDetailScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Latest Arrival: ${formatDateTimeReadable(DateTime.parse(req['latestArrivalTime']))}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    Text(timeago.format(DateTime.parse(req['latestArrivalTime']), allowFromNow: true), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      'Latest Arrival: ${formatDateTimeReadable(DateTime.parse(req['latestArrivalTime']))}',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      timeago.format(DateTime.parse(req['latestArrivalTime']),
+                          allowFromNow: true),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
                   ],
                 ),
               ],
@@ -352,7 +569,8 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.group, color: Colors.purple),
                 const SizedBox(width: 6),
-                Text('Number of Riders: ${req['numberOfRiders']}', style: const TextStyle(fontSize: 15)),
+                Text('Number of Riders: ${req['numberOfRiders']}',
+                    style: const TextStyle(fontSize: 15)),
               ],
             ),
             const SizedBox(height: 10),
@@ -360,7 +578,8 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.directions_walk, color: Colors.teal),
                 const SizedBox(width: 6),
-                Text('Max Walking Time: ${req['maxWalkingTimeMinutes']} min', style: const TextStyle(fontSize: 15)),
+                Text('Max Walking Time: ${req['maxWalkingTimeMinutes']} min',
+                    style: const TextStyle(fontSize: 15)),
               ],
             ),
             const SizedBox(height: 10),
@@ -368,7 +587,9 @@ class ActivityDetailScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.wc, color: Colors.indigo),
                 const SizedBox(width: 6),
-                Text('Same Gender Only: ${req['sameGender'] == true ? "Yes" : "No"}', style: const TextStyle(fontSize: 15)),
+                Text(
+                    'Same Gender Only: ${req['sameGender'] == true ? "Yes" : "No"}',
+                    style: const TextStyle(fontSize: 15)),
               ],
             ),
             const SizedBox(height: 24),
@@ -386,10 +607,9 @@ class ActivityDetailScreen extends StatelessWidget {
                   Text(
                     'Not matched yet',
                     style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14),
                   ),
                 ],
               ),
@@ -397,12 +617,25 @@ class ActivityDetailScreen extends StatelessWidget {
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => context.push(
+                  Routes.tripMap,
+                  extra: TripMapScreen.rider(
+                    pickup: Coordinate(
+                        req['sourceLongitude'], req['sourceLatitude']),
+                    dropoff: Coordinate(req['destinationLongitude'],
+                        req['destinationLatitude']),
+                    riderName: 'You',
+                    showLegend: false,
+                  ),
+                ), // GoRouter navigation
                 icon: const Icon(Icons.map, color: Colors.white),
-                label: const Text('Show path on the map', style: TextStyle(color: Colors.white)),
+                label: const Text('Show path on the map',
+                    style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                   backgroundColor: Colors.black,
                 ),
               ),
@@ -410,8 +643,13 @@ class ActivityDetailScreen extends StatelessWidget {
           ],
         ),
       );
-    } else {
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // FALLBACK
+    // ──────────────────────────────────────────────────────────────────────────
+    else {
       return const Text('Unknown activity type.');
     }
   }
-} 
+}

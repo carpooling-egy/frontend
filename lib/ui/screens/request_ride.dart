@@ -4,6 +4,8 @@ import 'package:frontend/ui/widgets/custom_back_button.dart';
 import 'package:frontend/utils/palette.dart';
 import 'package:frontend/services/api/ride_service.dart';
 import 'package:frontend/models/ride_request.dart';
+import 'package:frontend/models/map_pick_result.dart';
+import 'package:frontend/models/place_suggestion.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/services/api/api_service.dart';
@@ -24,7 +26,7 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
   final _formKey = GlobalKey<FormState>();
   late final RideService _rideService;
   final _auth = FirebaseAuth.instance;
-  
+
   @override
   void initState() {
     super.initState();
@@ -32,175 +34,172 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
     final apiService = ApiService(http.Client(), authMethods);
     _rideService = RideService(apiService);
   }
-  
-  // Location controllers
+
+  // Picked places
+  PlaceSuggestion? _sourceSuggestion;
+  PlaceSuggestion? _destSuggestion;
+
+  // Time controllers
+  final TextEditingController _earliestDepartureController = TextEditingController();
+  final TextEditingController _latestArrivalController = TextEditingController();
+
+  // Other controllers
+  final TextEditingController _maxWalkingController = TextEditingController();
+  final TextEditingController _ridersController = TextEditingController();
+
   final TextEditingController _sourceAddressController = TextEditingController();
   final TextEditingController _destinationAddressController = TextEditingController();
-  
-  // Time controllers
-  final TextEditingController _earliestDepartureTimeController = TextEditingController();
-  final TextEditingController _latestArrivalTimeController = TextEditingController();
-  
-  // Other controllers
-  final TextEditingController _maxWalkingTimeController = TextEditingController();
-  final TextEditingController _numberOfRidersController = TextEditingController();
-  
+
+
   // Preferences
   bool _sameGender = false;
-  // Coordinates (to be set by geocoding)
-  double _sourceLatitude = 42.5078;
-  double _sourceLongitude = 1.5211;
-  double _destinationLatitude = 42.5057;
-  double _destinationLongitude = 1.5265;
 
   @override
   void dispose() {
     _sourceAddressController.dispose();
     _destinationAddressController.dispose();
-    _earliestDepartureTimeController.dispose();
-    _latestArrivalTimeController.dispose();
-    _maxWalkingTimeController.dispose();
-    _numberOfRidersController.dispose();
+    _earliestDepartureController.dispose();
+    _latestArrivalController.dispose();
+    _maxWalkingController.dispose();
+    _ridersController.dispose();
     super.dispose();
   }
 
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.black54),
-      fillColor: Palette.lightGray,
-      filled: true,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
-      ),
-    );
-  }
+  InputDecoration _inputDecoration(String label) => InputDecoration(
+    labelText: label,
+    hintText: label,
+    hintStyle: const TextStyle(color: Colors.grey),
+    labelStyle: const TextStyle(color: Colors.black54),
+    fillColor: Palette.lightGray,
+    filled: true,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide.none,
+    ),
+  );
 
-  Future<void> _selectDateTime(TextEditingController controller, bool isLatestArrival) async {
+  /* ─────────────────────────  Date/Time picker ───────────────────────── */
+  Future<void> _selectDateTime(
+      TextEditingController controller, {
+        required bool isLatest,
+      }) async {
     final date = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 30)),
     );
-    
-    if (date != null) {
-      final time = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
+    if (date == null) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (time == null) return;
+
+    final dt =
+    DateTime(date.year, date.month, date.day, time.hour, time.minute);
+
+    if (isLatest && _earliestDepartureController.text.isNotEmpty) {
+      final earliest = parseIso8601String(_earliestDepartureController.text);
+      if (dt.isBefore(earliest)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Latest arrival must be after earliest departure'),
+          ),
+        );
+        return;
+      }
+    }
+
+    controller.text = formatDateTimeToIso8601(dt);
+  }
+
+  /* ─────────────────────────  Map picker ───────────────────────── */
+  Future<void> _pickLocations() async {
+    final result = await GoRouter.of(context).push<MapPickResult>(Routes.map);
+    if (result == null) return;
+
+    setState(() {
+      _sourceSuggestion = result.source;
+      _destSuggestion = result.destination;
+
+      _sourceAddressController.text = result.source.label;
+      _destinationAddressController.text = result.destination.label;
+    });
+  }
+
+  /* ─────────────────────────  Submit ───────────────────────── */
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_sourceSuggestion == null || _destSuggestion == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please pick source & destination')),
       );
-      
-      if (time != null) {
-        final dateTime = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          time.hour,
-          time.minute,
+      return;
+    }
+
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('Not authenticated');
+      final now = DateTime.now();
+
+      final req = RideRequest(
+        userId: user.uid,
+        sourceLatitude: _sourceSuggestion!.lat,
+        sourceLongitude: _sourceSuggestion!.lon,
+        sourceAddress: _sourceSuggestion!.label,
+        destinationLatitude: _destSuggestion!.lat,
+        destinationLongitude: _destSuggestion!.lon,
+        destinationAddress: _destSuggestion!.label,
+        earliestDepartureTime:
+        parseIso8601String(_earliestDepartureController.text),
+        latestArrivalTime: parseIso8601String(_latestArrivalController.text),
+        maxWalkingTimeMinutes: int.parse(_maxWalkingController.text),
+        numberOfRiders: int.parse(_ridersController.text),
+        sameGender: _sameGender,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _rideService.requestRide(
+        sourceLatitude: req.sourceLatitude,
+        sourceLongitude: req.sourceLongitude,
+        sourceAddress: req.sourceAddress,
+        destinationLatitude: req.destinationLatitude,
+        destinationLongitude: req.destinationLongitude,
+        destinationAddress: req.destinationAddress,
+        earliestDepartureTime: req.earliestDepartureTime,
+        latestArrivalTime: req.latestArrivalTime,
+        maxWalkingTimeMinutes: req.maxWalkingTimeMinutes,
+        numberOfRiders: req.numberOfRiders,
+        sameGender: req.sameGender,
+        userId: req.userId,
+        createdAt: req.createdAt,
+        updatedAt: req.updatedAt,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ride request sent!')),
         );
-        
-        if (isLatestArrival && _earliestDepartureTimeController.text.isNotEmpty) {
-          final earliestTime = parseIso8601String(_earliestDepartureTimeController.text);
-          if (dateTime.isBefore(earliestTime)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Latest arrival time must be after earliest departure time')),
-            );
-            return;
-          }
-        }
-        
-        controller.text = formatDateTimeToIso8601(dateTime);
+        context.go(Routes.home);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     }
   }
 
-  Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        final currentUser = _auth.currentUser;
-        if (currentUser == null) {
-          throw Exception('User not authenticated');
-        }
-        final now = DateTime.now();
-        final rideRequest = RideRequest(
-          userId: currentUser.uid,
-          sourceLatitude: _sourceLatitude,
-          sourceLongitude: _sourceLongitude,
-          sourceAddress: _sourceAddressController.text,
-          destinationLatitude: _destinationLatitude,
-          destinationLongitude: _destinationLongitude,
-          destinationAddress: _destinationAddressController.text,
-          earliestDepartureTime: parseIso8601String(_earliestDepartureTimeController.text),
-          latestArrivalTime: parseIso8601String(_latestArrivalTimeController.text),
-          maxWalkingTimeMinutes: int.parse(_maxWalkingTimeController.text),
-          numberOfRiders: int.parse(_numberOfRidersController.text),
-          sameGender: _sameGender,
-          createdAt: now,
-          updatedAt: now,
-        );
-
-        // Log the request data
-        debugPrint('=== Ride Request Data ===');
-        debugPrint('User ID: ${rideRequest.userId}');
-        debugPrint('Source:');
-        debugPrint('  Address: ${rideRequest.sourceAddress}');
-        debugPrint('  Latitude: ${rideRequest.sourceLatitude}');
-        debugPrint('  Longitude: ${rideRequest.sourceLongitude}');
-        debugPrint('\nDestination:');
-        debugPrint('  Address: ${rideRequest.destinationAddress}');
-        debugPrint('  Latitude: ${rideRequest.destinationLatitude}');
-        debugPrint('  Longitude: ${rideRequest.destinationLongitude}');
-        debugPrint('\nTimes:');
-        debugPrint('  Earliest Departure: ${formatDateTimeToIso8601(rideRequest.earliestDepartureTime)}');
-        debugPrint('  Latest Arrival: ${formatDateTimeToIso8601(rideRequest.latestArrivalTime)}');
-        debugPrint('\nDetails:');
-        debugPrint('  Max Walking Time: ${rideRequest.maxWalkingTimeMinutes} minutes');
-        debugPrint('  Number of Riders: ${rideRequest.numberOfRiders}');
-        debugPrint('\nPreferences:');
-        debugPrint('  Same Gender Only: ${rideRequest.sameGender}');
-        debugPrint('\nJSON Payload:');
-        debugPrint(JsonEncoder.withIndent('  ').convert(rideRequest.toJson()));
-        debugPrint('===========================');
-
-        await _rideService.requestRide(
-          sourceLatitude: rideRequest.sourceLatitude,
-          sourceLongitude: rideRequest.sourceLongitude,
-          sourceAddress: rideRequest.sourceAddress,
-          destinationLatitude: rideRequest.destinationLatitude,
-          destinationLongitude: rideRequest.destinationLongitude,
-          destinationAddress: rideRequest.destinationAddress,
-          earliestDepartureTime: rideRequest.earliestDepartureTime,
-          latestArrivalTime: rideRequest.latestArrivalTime,
-          maxWalkingTimeMinutes: rideRequest.maxWalkingTimeMinutes,
-          numberOfRiders: rideRequest.numberOfRiders,
-          sameGender: rideRequest.sameGender,
-          userId: rideRequest.userId,
-          createdAt: rideRequest.createdAt,
-          updatedAt: rideRequest.updatedAt,
-        );
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ride request submitted successfully!')),
-          );
-          context.go(Routes.home);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${e.toString()}')),
-          );
-        }
-      }
-    }
-  }
-
+  /* ─────────────────────────  UI ───────────────────────── */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: CustomBackButton(color: Palette.primaryColor, route: Routes.home),
+        leading:
+        const CustomBackButton(color: Palette.primaryColor, route: Routes.home),
         title: const Text('Request a Ride'),
       ),
       body: SafeArea(
@@ -214,97 +213,92 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Source Location
+                      // ───────── Source ─────────
                       TextFormField(
-                        controller: _sourceAddressController,
-                        decoration: _inputDecoration('Source Address'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter source address';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Destination Location
-                      TextFormField(
-                        controller: _destinationAddressController,
-                        decoration: _inputDecoration('Destination Address'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter destination address';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Earliest Departure Time
-                      TextFormField(
-                        controller: _earliestDepartureTimeController,
-                        decoration: _inputDecoration('Earliest Departure Time'),
                         readOnly: true,
-                        onTap: () => _selectDateTime(_earliestDepartureTimeController, false),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select earliest departure time';
-                          }
-                          return null;
-                        },
+                        decoration: _inputDecoration('Source Address'),
+                        controller: _sourceAddressController,
+                        onTap: _pickLocations,
+                        validator: (_) => _sourceSuggestion == null ? 'Select source' : null,
                       ),
                       const SizedBox(height: 16),
-                      
-                      // Latest Arrival Time
+
+                      // ───────── Destination ─────────
                       TextFormField(
-                        controller: _latestArrivalTimeController,
+                        readOnly: true,
+                        decoration: _inputDecoration('Destination Address'),
+                        controller: _destinationAddressController,
+                        onTap: _pickLocations,
+                        validator: (_) => _destSuggestion == null ? 'Select destination' : null,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      /* ───────── Earliest departure ───────── */
+                      TextFormField(
+                        controller: _earliestDepartureController,
+                        decoration:
+                        _inputDecoration('Earliest Departure Time'),
+                        readOnly: true,
+                        onTap: () => _selectDateTime(
+                          _earliestDepartureController,
+                          isLatest: false,
+                        ),
+                        validator: (v) =>
+                        v == null || v.isEmpty ? 'Select time' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      /* ───────── Latest arrival ───────── */
+                      TextFormField(
+                        controller: _latestArrivalController,
                         decoration: _inputDecoration('Latest Arrival Time'),
                         readOnly: true,
-                        onTap: () => _selectDateTime(_latestArrivalTimeController, true),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select latest arrival time';
-                          }
-                          return null;
-                        },
+                        onTap: () => _selectDateTime(
+                          _latestArrivalController,
+                          isLatest: true,
+                        ),
+                        validator: (v) =>
+                        v == null || v.isEmpty ? 'Select time' : null,
                       ),
                       const SizedBox(height: 16),
-                      
-                      // Max Walking Time
+
+                      /* ───────── Max walking ───────── */
                       TextFormField(
-                        controller: _maxWalkingTimeController,
-                        decoration: _inputDecoration('Maximum Walking Time (minutes)'),
+                        controller: _maxWalkingController,
+                        decoration: _inputDecoration(
+                          'Maximum Walking Time (minutes)',
+                        ),
                         keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter maximum walking time';
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
+                            return 'Enter walking time';
                           }
-                          if (int.tryParse(value) == null) {
-                            return 'Please enter a valid number';
+                          if (int.tryParse(v) == null) {
+                            return 'Enter a number';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-                      
-                      // Number of Riders
+
+                      /* ───────── Riders ───────── */
                       TextFormField(
-                        controller: _numberOfRidersController,
+                        controller: _ridersController,
                         decoration: _inputDecoration('Number of Riders'),
                         keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter number of riders';
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
+                            return 'Enter riders';
                           }
-                          if (int.tryParse(value) == null) {
-                            return 'Please enter a valid number';
+                          if (int.tryParse(v) == null) {
+                            return 'Enter a number';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 24),
-                      
-                      // Preferences Section
+
                       const Text(
                         'Preferences',
                         style: TextStyle(
@@ -313,24 +307,25 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
-                      // Same Gender Switch
+
                       SwitchListTile(
                         title: const Text('Same Gender Only'),
                         value: _sameGender,
-                        onChanged: (value) => setState(() => _sameGender = value),
+                        onChanged: (val) => setState(() => _sameGender = val),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
+
+            /* ───────── Submit button ───────── */
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submitForm,
+                  onPressed: _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Palette.primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -354,4 +349,4 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
       ),
     );
   }
-} 
+}

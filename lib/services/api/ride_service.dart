@@ -17,8 +17,7 @@ class RideService {
     return [
       // Matched rider request example
       {
-        'riderId': 'r12345',
-        'tripDate': '2025-06-22T10:30:00Z',
+        'createdAt': '2025-06-22T10:30:00Z', // new
         'pickupLatitude': 30.0444,
         'pickupLongitude': 31.2357,
         'pickupAddress': 'Tahrir Square, Cairo, Egypt',
@@ -27,15 +26,18 @@ class RideService {
         'dropoffAddress': 'Zamalek, Cairo, Egypt',
         'pickupTime': '2025-06-22T10:45:00Z',
         'dropoffTime': '2025-06-22T11:15:00Z',
-        'driverId': 'd67890',
-        'driverName': 'Ahmed Mostafa',
+        'driverId': 'd67890', // doesn't exist
+        'driverName': 'Ahmed Mostafa', // doesn't exist
+        'driverFirstName': 'Ahmed', // new
+        'driverLastName': 'Mostafa', // new
         'driverGender': 'MALE',
+        'sameGender': false, // new
         'matched': true,
       },
       // Unmatched rider request example
       {
         'id': 'rdr-req-2',
-        'userId': 'user-rdr-2',
+        'userId': 'user-rdr-2',  // doesn't exist
         'sourceLatitude': 30.05000000,
         'sourceLongitude': 31.24000000,
         'sourceAddress': 'Tahrir Square',
@@ -44,7 +46,7 @@ class RideService {
         'destinationAddress': 'Egyptian Museum',
         'sameGender': false,
         'createdAt': '2025-06-21T21:29:35.328572Z',
-        'updatedAt': '2025-06-21T21:29:35.328572Z',
+        'updatedAt': '2025-06-21T21:29:35.328572Z', // doesn't exist
         'earliestDepartureTime': '2025-06-21T22:29:35.328572Z',
         'latestArrivalTime': '2025-06-21T23:29:35.328572Z',
         'maxWalkingTimeMinutes': 5,
@@ -58,7 +60,7 @@ class RideService {
   List<RideOffer> _getMockRideOffers() {
     debugPrint('RideService: Returning mock ride offers data');
     return [
-      // Example with matchedRiders and path fields
+      // Example with matchedRiders and path fields, but lat/long values swapped
       RideOffer(
         id: 'drv-offer-1',
         sourceAddress: 'Cairo Tower',
@@ -68,37 +70,43 @@ class RideService {
         detourTimeMinutes: 15,
         capacity: 3,
         sameGender: false,
-        sourceLatitude: 30.0444,
-        sourceLongitude: 31.2357,
-        destinationLatitude: 30.0131,
-        destinationLongitude: 31.2089,
+        // swapped: lat ← old long, long ← old lat
+        sourceLatitude: 31.198691494191976,
+        sourceLongitude: 29.908174576147985,
+        destinationLatitude: 31.16945470639824,
+        destinationLongitude: 29.886436679686113,
         createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-        // Add extra fields as dynamic properties
         extra: {
           'matchedRiders': [
             {
-              'riderId': 'user-rdr-1',
-              'riderName': 'Placeholder Name',
+              'riderId': 'user-rdr-1', // doesn't exist
+              'riderName': 'Ali Mansour', // doesn't exist
+              'riderFirstName': 'Placeholder Name', // new
+              'riderLastName': 'Placeholder Last Name',  // new
               'riderGender': 'male',
-              'pickupTime': '2025-06-21T22:39:35.328572Z',
-              'dropoffTime': '2025-06-21T23:19:35.328572Z',
-              'pickupAddress': 'Cairo Opera House',
-              'dropoffAddress': 'Egyptian Museum',
+              'pickupTime': '2025-06-21T22:35:00Z',  // doesn't exist
+              'dropoffTime': '2025-06-21T22:50:00Z', // doesn't exist
+              'pickupLatitude': 30.04600000, // new
+              'pickupLongitude': 31.23650000, // new
+              'pickupAddress': 'Waypoint 1',
+              'dropoffLatitude': 30.01310000, // new
+              'dropoffLongitude': 31.20890000, // new
+              'dropoffAddress': 'Waypoint 3',
             }
           ],
           'path': [
             {
               'type': 'pickup',
               'reqId': 'user-rdr-1',
-              'latitude': 30.046,
-              'longitude': 31.2365,
+              'latitude': 31.19915432414726,
+              'longitude': 29.90320377188607,
             },
             {
               'type': 'dropoff',
               'reqId': 'user-rdr-1',
-              'latitude': 30.0131,
-              'longitude': 31.2089,
-            }
+              'latitude': 31.189595445926358,
+              'longitude': 29.892563755897868,
+            },
           ]
         },
       ),
@@ -158,7 +166,7 @@ class RideService {
 
       debugPrint('RideService: Sending data:');
       debugPrint(JsonEncoder.withIndent('  ').convert(rideRequest.toJson()));
-      
+
       final response = await _apiService.post('https://7b9e-197-55-251-232.ngrok-free.app/api/rider-requests', rideRequest.toJson());
       debugPrint('RideService: Got response: $response');
       return RideRequest.fromJson(response);
@@ -206,7 +214,7 @@ class RideService {
 
       debugPrint('RideService: Sending data:');
       debugPrint(JsonEncoder.withIndent('  ').convert(rideOffer.toJson()));
-      
+
       final response = await _apiService.post('https://7b9e-197-55-251-232.ngrok-free.app/api/driver-offers', rideOffer.toJson());
       debugPrint('RideService: Got response: $response');
       return RideOffer.fromJson(response);

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../models/coordinate.dart';
+import '../ui/screens/map_screen.dart';
+import '../ui/screens/trip_map.dart';
 import 'routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -37,6 +40,7 @@ GoRouter router(FirebaseAuth auth) {
 
       return null; // No redirection needed
     },
+    restorationScopeId: null,
     routes: [
       GoRoute(
         path: Routes.welcome,
@@ -70,7 +74,31 @@ GoRouter router(FirebaseAuth auth) {
         path: Routes.notifications,
         builder: (context, state) => const NotificationsScreen(),
       ),
+      GoRoute(
+        path: Routes.map,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const MapScreen(),
+          transitionsBuilder: (ctx, anim, sec, child) => SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0,1),
+              end: Offset.zero,
+            ).animate(anim),
+            child: FadeTransition(opacity: anim, child: child),
+          ),
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
+      ),
+      // ── UPDATED tripMap route ───────────────────────────────────────────────
+      GoRoute(
+        path: Routes.tripMap,
+        builder: (context, state) {
+          final screen = state.extra as TripMapScreen;
+          return screen;
+        },
+      ),
     ],
+
   );
 }
 

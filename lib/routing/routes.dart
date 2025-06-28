@@ -7,4 +7,6 @@ abstract final class Routes {
   static const requestRide = '/request-ride';
   static const offerRide = '/offer-ride';
   static const notifications = '/notifications';
+  static const map = '/map';
+  static const tripMap = '/rider-trip';
 }
