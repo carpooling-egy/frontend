@@ -14,6 +14,7 @@ import 'package:frontend/utils/date_time_utils.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:frontend/utils/show_snackbar.dart';
 
 class RequestRideScreen extends StatefulWidget {
   const RequestRideScreen({super.key});
@@ -40,16 +41,19 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
   PlaceSuggestion? _destSuggestion;
 
   // Time controllers
-  final TextEditingController _earliestDepartureController = TextEditingController();
-  final TextEditingController _latestArrivalController = TextEditingController();
+  final TextEditingController _earliestDepartureController =
+      TextEditingController();
+  final TextEditingController _latestArrivalController =
+      TextEditingController();
 
   // Other controllers
   final TextEditingController _maxWalkingController = TextEditingController();
   final TextEditingController _ridersController = TextEditingController();
 
-  final TextEditingController _sourceAddressController = TextEditingController();
-  final TextEditingController _destinationAddressController = TextEditingController();
-
+  final TextEditingController _sourceAddressController =
+      TextEditingController();
+  final TextEditingController _destinationAddressController =
+      TextEditingController();
 
   // Preferences
   bool _sameGender = false;
@@ -66,23 +70,23 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
   }
 
   InputDecoration _inputDecoration(String label) => InputDecoration(
-    labelText: label,
-    hintText: label,
-    hintStyle: const TextStyle(color: Colors.grey),
-    labelStyle: const TextStyle(color: Colors.black54),
-    fillColor: Palette.lightGray,
-    filled: true,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide.none,
-    ),
-  );
+        labelText: label,
+        hintText: label,
+        hintStyle: const TextStyle(color: Colors.grey),
+        labelStyle: const TextStyle(color: Colors.black54),
+        fillColor: Palette.lightGray,
+        filled: true,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+      );
 
   /* ─────────────────────────  Date/Time picker ───────────────────────── */
   Future<void> _selectDateTime(
-      TextEditingController controller, {
-        required bool isLatest,
-      }) async {
+    TextEditingController controller, {
+    required bool isLatest,
+  }) async {
     final date = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -97,7 +101,7 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
     if (time == null) return;
 
     final dt =
-    DateTime(date.year, date.month, date.day, time.hour, time.minute);
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
 
     if (isLatest && _earliestDepartureController.text.isNotEmpty) {
       final earliest = parseIso8601String(_earliestDepartureController.text);
@@ -143,7 +147,7 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
       if (user == null) throw Exception('Not authenticated');
       final now = DateTime.now();
 
-      final req = RideRequest(
+      final rideRequest = RideRequest(
         userId: user.uid,
         sourceLatitude: _sourceSuggestion!.lat,
         sourceLongitude: _sourceSuggestion!.lon,
@@ -152,7 +156,7 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
         destinationLongitude: _destSuggestion!.lon,
         destinationAddress: _destSuggestion!.label,
         earliestDepartureTime:
-        parseIso8601String(_earliestDepartureController.text),
+            parseIso8601String(_earliestDepartureController.text),
         latestArrivalTime: parseIso8601String(_latestArrivalController.text),
         maxWalkingTimeMinutes: int.parse(_maxWalkingController.text),
         numberOfRiders: int.parse(_ridersController.text),
@@ -161,33 +165,58 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
         updatedAt: now,
       );
 
-      await _rideService.requestRide(
-        sourceLatitude: req.sourceLatitude,
-        sourceLongitude: req.sourceLongitude,
-        sourceAddress: req.sourceAddress,
-        destinationLatitude: req.destinationLatitude,
-        destinationLongitude: req.destinationLongitude,
-        destinationAddress: req.destinationAddress,
-        earliestDepartureTime: req.earliestDepartureTime,
-        latestArrivalTime: req.latestArrivalTime,
-        maxWalkingTimeMinutes: req.maxWalkingTimeMinutes,
-        numberOfRiders: req.numberOfRiders,
-        sameGender: req.sameGender,
-        userId: req.userId,
-        createdAt: req.createdAt,
-        updatedAt: req.updatedAt,
-      );
+      debugPrint('Offer JSON: ${jsonEncode(rideRequest.toJson())}');
 
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+      await _rideService.requestRide(
+        sourceLatitude: rideRequest.sourceLatitude,
+        sourceLongitude: rideRequest.sourceLongitude,
+        sourceAddress: rideRequest.sourceAddress,
+        destinationLatitude: rideRequest.destinationLatitude,
+        destinationLongitude: rideRequest.destinationLongitude,
+        destinationAddress: rideRequest.destinationAddress,
+        earliestDepartureTime: rideRequest.earliestDepartureTime,
+        latestArrivalTime: rideRequest.latestArrivalTime,
+        maxWalkingTimeMinutes: rideRequest.maxWalkingTimeMinutes,
+        numberOfRiders: rideRequest.numberOfRiders,
+        sameGender: rideRequest.sameGender,
+        userId: rideRequest.userId,
+        createdAt: rideRequest.createdAt,
+        updatedAt: rideRequest.updatedAt,
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ride request sent!')),
+        Navigator.of(context, rootNavigator: true).pop();
+        showSnackBar(
+          context,
+          'Ride request submitted successfully!',
+          backgroundColor: Colors.green,
+          icon: Icons.check_circle,
         );
         context.go(Routes.home);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+        Navigator.of(context, rootNavigator: true).pop();
+        String errorMessage = 'An error occurred. Please try again.';
+        final errorStr = e.toString();
+        final match = RegExp(r'\{.*\}').firstMatch(errorStr);
+        if (match != null) {
+          try {
+            final Map<String, dynamic> errorJson = jsonDecode(match.group(0)!);
+            if (errorJson['message'] != null) {
+              errorMessage = errorJson['message'];
+            }
+          } catch (_) {}
+        }
+        showSnackBar(
+          context,
+          errorMessage,
+          backgroundColor: Colors.red,
+          icon: Icons.error,
         );
       }
     }
@@ -198,8 +227,8 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading:
-        const CustomBackButton(color: Palette.primaryColor, route: Routes.home),
+        leading: const CustomBackButton(
+            color: Palette.primaryColor, route: Routes.home),
         title: const Text('Request a Ride'),
       ),
       body: SafeArea(
@@ -219,7 +248,8 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
                         decoration: _inputDecoration('Source Address'),
                         controller: _sourceAddressController,
                         onTap: _pickLocations,
-                        validator: (_) => _sourceSuggestion == null ? 'Select source' : null,
+                        validator: (_) =>
+                            _sourceSuggestion == null ? 'Select source' : null,
                       ),
                       const SizedBox(height: 16),
 
@@ -229,7 +259,9 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
                         decoration: _inputDecoration('Destination Address'),
                         controller: _destinationAddressController,
                         onTap: _pickLocations,
-                        validator: (_) => _destSuggestion == null ? 'Select destination' : null,
+                        validator: (_) => _destSuggestion == null
+                            ? 'Select destination'
+                            : null,
                       ),
 
                       const SizedBox(height: 16),
@@ -237,15 +269,14 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
                       /* ───────── Earliest departure ───────── */
                       TextFormField(
                         controller: _earliestDepartureController,
-                        decoration:
-                        _inputDecoration('Earliest Departure Time'),
+                        decoration: _inputDecoration('Earliest Departure Time'),
                         readOnly: true,
                         onTap: () => _selectDateTime(
                           _earliestDepartureController,
                           isLatest: false,
                         ),
                         validator: (v) =>
-                        v == null || v.isEmpty ? 'Select time' : null,
+                            v == null || v.isEmpty ? 'Select time' : null,
                       ),
                       const SizedBox(height: 16),
 
@@ -259,7 +290,7 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
                           isLatest: true,
                         ),
                         validator: (v) =>
-                        v == null || v.isEmpty ? 'Select time' : null,
+                            v == null || v.isEmpty ? 'Select time' : null,
                       ),
                       const SizedBox(height: 16),
 

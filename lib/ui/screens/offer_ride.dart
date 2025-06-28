@@ -13,6 +13,7 @@ import 'package:frontend/services/auth/firebase_auth_methods.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:frontend/utils/show_snackbar.dart';
 
 class OfferRideScreen extends StatefulWidget {
   const OfferRideScreen({super.key});
@@ -122,7 +123,8 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
       if (user == null) throw Exception('Not authenticated');
       final now = DateTime.now();
 
-      final offer = RideOffer(
+
+      final rideOffer = RideOffer(
         userId: user.uid,
         sourceLatitude: _sourceSuggestion!.lat,
         sourceLongitude: _sourceSuggestion!.lon,
@@ -139,38 +141,63 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         updatedAt: now,
       );
 
-      debugPrint('Offer JSON: ${jsonEncode(offer.toJson())}');
-      await _rideService.offerRide(
-        sourceLatitude: offer.sourceLatitude,
-        sourceLongitude: offer.sourceLongitude,
-        sourceAddress: offer.sourceAddress,
-        destinationLatitude: offer.destinationLatitude,
-        destinationLongitude: offer.destinationLongitude,
-        destinationAddress: offer.destinationAddress,
-        departureTime: offer.departureTime,
-        maxEstimatedArrivalTime: offer.maxEstimatedArrivalTime,
-        detourTimeMinutes: offer.detourTimeMinutes,
-        capacity: offer.capacity,
-        sameGender: offer.sameGender,
-        userId: offer.userId,
-        createdAt: offer.createdAt,
-        updatedAt: offer.updatedAt,
+      debugPrint('Offer JSON: ${jsonEncode(rideOffer.toJson())}');
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ride offer submitted!')),
+      await _rideService.offerRide(
+          sourceLatitude: rideOffer.sourceLatitude,
+          sourceLongitude: rideOffer.sourceLongitude,
+          sourceAddress: rideOffer.sourceAddress,
+          destinationLatitude: rideOffer.destinationLatitude,
+          destinationLongitude: rideOffer.destinationLongitude,
+          destinationAddress: rideOffer.destinationAddress,
+          departureTime: rideOffer.departureTime,
+          maxEstimatedArrivalTime: rideOffer.maxEstimatedArrivalTime,
+          detourTimeMinutes: rideOffer.detourTimeMinutes,
+          capacity: rideOffer.capacity,
+          sameGender: rideOffer.sameGender,
+          userId: rideOffer.userId,
+          createdAt: rideOffer.createdAt,
+          updatedAt: rideOffer.updatedAt,
         );
-        context.go(Routes.home);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+          showSnackBar(
+            context,
+            'Ride offer submitted successfully!',
+            backgroundColor: Colors.green,
+            icon: Icons.check_circle,
+          );
+          context.go(Routes.home);
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+          String errorMessage = 'An error occurred. Please try again.';
+          final errorStr = e.toString();
+          final match = RegExp(r'\{.*\}').firstMatch(errorStr);
+          if (match != null) {
+            try {
+              final Map<String, dynamic> errorJson = jsonDecode(match.group(0)!);
+              if (errorJson['message'] != null) {
+                errorMessage = errorJson['message'];
+              }
+            } catch (_) {}
+          }
+          showSnackBar(
+            context,
+            errorMessage,
+            backgroundColor: Colors.red,
+            icon: Icons.error,
+          );
+        }
       }
     }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -312,3 +339,4 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
     );
   }
 }
+

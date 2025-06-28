@@ -37,9 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadProfileImage();
-    _loadProfileData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RideProvider>().loadAllUserRides();
+      _loadProfileData();
+      final user = _auth.currentUser;
+      if (user != null) {
+        context.read<RideProvider>().loadSummarizedCards(user.uid);
+      }
     });
   }
 
@@ -62,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileProvider>().profile;
+    final user = _auth.currentUser;
     
     return Scaffold(
       appBar: AppBar(
@@ -196,103 +200,115 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Welcome Section
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Palette.primaryColor.withOpacity(0.8),
-                    Palette.primaryColor,
-                  ],
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Welcome to',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                    ),
-                  ),
-                  const Text(
-                    '3al Sekka',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Find your perfect ride match',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Quick Actions Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Quick Actions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ActionCard(
-                          icon: Icons.car_rental,
-                          title: 'Request',
-                          subtitle: 'Find a ride',
-                          color: Palette.orange,
-                          onTap: () => context.go(Routes.requestRide),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _ActionCard(
-                          icon: Icons.directions_car,
-                          title: 'Offer',
-                          subtitle: 'Share your ride',
-                          color: Palette.primaryColor,
-                          onTap: () => context.go(Routes.offerRide),
-                        ),
-                      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          if (user != null) {
+            await Future.wait([
+              context.read<RideProvider>().loadSummarizedCards(user.uid),
+              context.read<ProfileProvider>().fetchProfile(user.uid),
+            ]);
+            await _loadProfileImage();
+          }
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Welcome Section
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Palette.primaryColor.withOpacity(0.8),
+                      Palette.primaryColor,
                     ],
                   ),
-                ],
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Welcome to',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                    const Text(
+                      '3al Sekka',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Find your perfect ride match',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Recent Activity Section
-            _buildRecentActivity(),
-          ],
+              // Quick Actions Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.car_rental,
+                            title: 'Request',
+                            subtitle: 'Find a ride',
+                            color: Palette.orange,
+                            onTap: () => context.go(Routes.requestRide),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.directions_car,
+                            title: 'Offer',
+                            subtitle: 'Share your ride',
+                            color: Palette.primaryColor,
+                            onTap: () => context.go(Routes.offerRide),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Recent Activity Section
+              _buildRecentActivity(),
+            ],
+          ),
         ),
       ),
     );
@@ -301,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildRecentActivity() {
     return Consumer<RideProvider>(
       builder: (context, rideProvider, child) {
-        if (rideProvider.isLoading) {
+        if (rideProvider.isLoadingSummarized) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -376,10 +392,9 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        final offers = rideProvider.userRideOffers;
-        final requests = rideProvider.userRideRequests;
+        final cards = rideProvider.summarizedCards;
 
-        if (offers.isEmpty && requests.isEmpty) {
+        if (cards.isEmpty) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -442,8 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              ...requests.map((request) => _buildActivityItem(request)),
-              ...offers.map((offer) => _buildRideOfferItem(offer)),
+              ...cards.map((card) => _buildSummarizedCard(context, card)),
             ],
           ),
         );
@@ -451,77 +465,48 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActivityItem(Map<String, dynamic> request) {
-    // Matched rider request
-    final isMatchedRider = request['matched'] == true;
-    if (isMatchedRider) {
-      return ActivityCard(
-        type: ActivityCardType.matchedRider,
-        data: request,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ActivityDetailScreen(
-                activity: request,
-                type: 'request_matched',
-              ),
-            ),
-          );
-        },
-      );
-    }
-    // Detect unmatched rider request
-    final isUnmatchedRider = request['matched'] == false;
-    if (isUnmatchedRider) {
-      return ActivityCard(
-        type: ActivityCardType.unmatchedRider,
-        data: request,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ActivityDetailScreen(
-                activity: request,
-                type: 'request_unmatched',
-              ),
-            ),
-          );
-        },
-      );
-    }
-    String type = (request['matchedDriver'] != null) ? 'request_matched' : 'request_unmatched';
-    return ActivityCard(
-      type: ActivityCardType.unmatchedRider,
-      data: request,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ActivityDetailScreen(
-              activity: request,
-              type: type,
-            ),
-          ),
-        );
-      },
-    );
-  }
+  Widget _buildSummarizedCard(BuildContext context, Map<String, dynamic> card) {
+    print('\n\n\n\n');
+    card.forEach((key, value) {
+      print('key: $key, value: $value');
+    });
 
-  Widget _buildRideOfferItem(RideOffer offer) {
+
+    ActivityCardType type;
+    if (card['type'].toString().contains('driver')) {
+      type = ActivityCardType.driverOffer;
+    // } else if (card['type'].toString().contains('rider') && card['matched']) {
+      // type = ActivityCardType.matchedRider;
+    } else if (card['type'].toString().contains('matchedRiderRequests') && card['matched']) {
+      type = ActivityCardType.matchedRider;
+    } else {
+      type = ActivityCardType.unmatchedRider;
+    }
     return ActivityCard(
-      type: ActivityCardType.driverOffer,
-      data: offer,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ActivityDetailScreen(
-              activity: offer,
-              type: 'offer',
-            ),
-          ),
+      type: type,
+      data: card,
+      onTap: () async {
+        final user = _auth.currentUser;
+        if (user == null) return;
+        final provider = context.read<RideProvider>();
+        await provider.loadDetailedCard(
+          type: card['type'].toString().replaceAll('-', '_'),
+          userId: user.uid,
+          cardId: card['id'].toString(),
         );
+        if (provider.detailedCard != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ActivityDetailScreen(
+                activity: provider.detailedCard!,
+                type: type == ActivityCardType.driverOffer
+                    ? 'offer'
+                    : (type == ActivityCardType.matchedRider ? 'request_matched' : 'request_unmatched'),
+              ),
+            ),
+          );
+        }
       },
     );
   }

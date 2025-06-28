@@ -129,7 +129,7 @@ class RideService {
   }
 
   // Request a ride
-  Future<RideRequest> requestRide({
+  Future<void> requestRide({
     required double sourceLatitude,
     required double sourceLongitude,
     required String sourceAddress,
@@ -166,10 +166,10 @@ class RideService {
 
       debugPrint('RideService: Sending data:');
       debugPrint(JsonEncoder.withIndent('  ').convert(rideRequest.toJson()));
-
-      final response = await _apiService.post('https://7b9e-197-55-251-232.ngrok-free.app/api/rider-requests', rideRequest.toJson());
+      
+      final response = await _apiService.post('https://cold-mice-tie.loca.lt/api/rider-requests', rideRequest.toJson());
       debugPrint('RideService: Got response: $response');
-      return RideRequest.fromJson(response);
+      // return RideRequest.fromJson(response);
     } catch (e) {
       debugPrint('RideService: Error creating ride request: $e');
       throw Exception('Failed to create ride request: $e');
@@ -177,7 +177,7 @@ class RideService {
   }
 
   // Offer a ride
-  Future<RideOffer> offerRide({
+  Future<void> offerRide({
     required double sourceLatitude,
     required double sourceLongitude,
     required String sourceAddress,
@@ -214,36 +214,13 @@ class RideService {
 
       debugPrint('RideService: Sending data:');
       debugPrint(JsonEncoder.withIndent('  ').convert(rideOffer.toJson()));
-
-      final response = await _apiService.post('https://7b9e-197-55-251-232.ngrok-free.app/api/driver-offers', rideOffer.toJson());
+      
+      final response = await _apiService.post('https://cold-mice-tie.loca.lt/api/driver-offers', rideOffer.toJson());
       debugPrint('RideService: Got response: $response');
-      return RideOffer.fromJson(response);
+      // return RideOffer.fromJson(response);
     } catch (e) {
       debugPrint('RideService: Error creating ride offer: $e');
       throw Exception('Failed to create ride offer: $e');
-    }
-  }
-
-  // Get available rides
-  Future<List<RideOffer>> getAvailableRides({
-    String? startLocation,
-    String? endLocation,
-    DateTime? date,
-  }) async {
-    debugPrint('RideService: Getting available rides');
-    try {
-      final queryParams = {
-        if (startLocation != null) 'startLocation': startLocation,
-        if (endLocation != null) 'endLocation': endLocation,
-        if (date != null) 'date': date.toIso8601String(),
-      };
-      final queryString = Uri(queryParameters: queryParams).query;
-      final response = await _apiService.get('/rides/available?$queryString');
-      debugPrint('RideService: Got response: $response');
-      return (response as List).map((json) => RideOffer.fromJson(json)).toList();
-    } catch (e) {
-      debugPrint('RideService: Error getting available rides: $e');
-      throw Exception('Failed to get available rides: $e');
     }
   }
 
@@ -313,18 +290,36 @@ class RideService {
     }
   }
 
-  // Fetch details for a single activity (offer or request) from backend
-  Future<DetailedTrip> fetchActivityDetail(String activityId) async {
+  // Get summarized ride request card data
+  Future<List<Map<String, dynamic>>> getUserRideRequestCards() async {
     try {
-      final response = await _apiService.get('/activities/$activityId');
-      if (response is Map<String, dynamic>) {
-        return DetailedTrip.fromJson(response);
-      } else {
-        throw Exception('Unexpected response format');
-      }
+      final requests = await getUserRideRequests();
+      return requests.map<Map<String, dynamic>>((req) {
+        final isMatched = req['matched'] == true;
+        return {
+          'id': req['riderId'] ?? req['id'],
+          'pickupAddress': req['pickupAddress'] ?? req['sourceAddress'],
+          'dropoffAddress': req['dropoffAddress'] ?? req['destinationAddress'],
+          'tripDate': req['tripDate'] ?? req['pickupTime'] ?? req['earliestDepartureTime'],
+          'matched': isMatched,
+          'driverName': isMatched ? req['driverName'] : null,
+        };
+      }).toList();
     } catch (e) {
-      debugPrint('RideService: Error fetching activity detail: $e');
-      throw Exception('Failed to fetch activity detail: $e');
+      return [];
+    }
+  }
+
+  // Get full ride request detail by id (mock only for now)
+  Future<Map<String, dynamic>?> getRideRequestDetail(String id) async {
+    try {
+      final requests = await getUserRideRequests();
+      return requests.firstWhere(
+        (req) => (req['riderId'] ?? req['id']) == id,
+        orElse: () => null,
+      );
+    } catch (e) {
+      return null;
     }
   }
 } 
