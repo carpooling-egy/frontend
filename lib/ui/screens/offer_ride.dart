@@ -11,6 +11,7 @@ import 'package:frontend/services/auth/firebase_auth_methods.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:frontend/utils/show_snackbar.dart';
 
 class OfferRideScreen extends StatefulWidget {
   const OfferRideScreen({super.key});
@@ -163,6 +164,11 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         debugPrint(JsonEncoder.withIndent('  ').convert(rideOffer.toJson()));
         debugPrint('===========================');
 
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(child: CircularProgressIndicator()),
+        );
         await _rideService.offerRide(
           sourceLatitude: rideOffer.sourceLatitude,
           sourceLongitude: rideOffer.sourceLongitude,
@@ -179,17 +185,35 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
           createdAt: rideOffer.createdAt,
           updatedAt: rideOffer.updatedAt,
         );
-
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ride offer submitted successfully!')),
+          Navigator.of(context, rootNavigator: true).pop();
+          showSnackBar(
+            context,
+            'Ride offer submitted successfully!',
+            backgroundColor: Colors.green,
+            icon: Icons.check_circle,
           );
           context.go(Routes.home);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${e.toString()}')),
+          Navigator.of(context, rootNavigator: true).pop();
+          String errorMessage = 'An error occurred. Please try again.';
+          final errorStr = e.toString();
+          final match = RegExp(r'\{.*\}').firstMatch(errorStr);
+          if (match != null) {
+            try {
+              final Map<String, dynamic> errorJson = jsonDecode(match.group(0)!);
+              if (errorJson['message'] != null) {
+                errorMessage = errorJson['message'];
+              }
+            } catch (_) {}
+          }
+          showSnackBar(
+            context,
+            errorMessage,
+            backgroundColor: Colors.red,
+            icon: Icons.error,
           );
         }
       }

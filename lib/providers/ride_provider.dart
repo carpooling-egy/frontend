@@ -24,12 +24,14 @@ class RideProvider with ChangeNotifier {
     notifyListeners();
     try {
       final cards = await _tripService.getSummarizedCards(userId);
+
+      debugPrint('\n\n\n\n\n\n\n###### RideProvider: Loaded summarized cards: $cards');
       // Flatten all card types into a single list for display
       _summarizedCards = [];
       cards.forEach((key, value) {
         if (value is List) {
           for (var card in value) {
-            card['type'] = key; // Attach type for later use
+            card['type'] = key ; // Attach type for later use
             _summarizedCards.add(card);
           }
         }
@@ -74,16 +76,7 @@ class RideProvider with ChangeNotifier {
     notifyListeners();
     try {
       final trips = await _tripService.getUpcomingTrips(userId);
-      _summarizedCards = trips.map((card) {
-        // For upcoming trips, we'll mark them as matched-rider-request or driver-offer
-        // based on their existing type or matched status
-        if (card['matched'] == true) {
-          card['type'] = 'matched-rider-request';
-        } else {
-          card['type'] = 'driver-offer';
-        }
-        return card;
-      }).toList();
+      _summarizedCards = trips;
 
       _isLoadingSummarized = false;
       notifyListeners();
@@ -100,10 +93,7 @@ class RideProvider with ChangeNotifier {
     notifyListeners();
     try {
       final requests = await _tripService.getPendingRiderRequests(userId);
-      _summarizedCards = requests.map((card) {
-        card['type'] = 'unmatched-rider-request';
-        return card;
-      }).toList();
+      _summarizedCards = requests;
       
       _isLoadingSummarized = false;
       notifyListeners();

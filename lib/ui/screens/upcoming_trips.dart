@@ -72,11 +72,11 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
           }
 
           final matchedRequests = rideProvider.summarizedCards
-              .where((card) => card['type'] == 'riderTrips')
+              .where( (card) => card['type'] == 'riderTrips')
               .toList();
 
           final driverOffers = rideProvider.summarizedCards
-              .where((card) => card['type'] == 'driverTrips')
+              .where( (card) => card['type'] == 'driverTrips')
               .toList();
 
           if (matchedRequests.isEmpty && driverOffers.isEmpty) {

@@ -72,7 +72,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
           }
 
           final unmatchedRequests = rideProvider.summarizedCards
-              .where((card) => card['type'] == 'unmatched-rider-request')
+              .where( (card) => card['type'] == 'unmatched-rider-request')
               .toList();
 
           if (unmatchedRequests.isEmpty) {

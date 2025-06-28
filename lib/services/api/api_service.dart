@@ -9,7 +9,7 @@ class ApiService {
   // Will be API gateway in production
   static const String baseUrl = '';
   // For iOS Simulator
-  // static const String baseUrl = 'http://localhost:8080/api';
+  // static const String baseUrl = 'http://10.0.2.2:8080/api';
   // For physical device (replace with your computer's IP address)
   // static const String baseUrl = 'http://192.168.1.xxx:8080/api';
   

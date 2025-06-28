@@ -37,11 +37,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadProfileImage();
-    _loadProfileData();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProfileData();
       final user = _auth.currentUser;
       if (user != null) {
-        await context.read<RideProvider>().loadSummarizedCards(user.uid);
+        context.read<RideProvider>().loadSummarizedCards(user.uid);
       }
     });
   }
@@ -475,6 +475,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ActivityCardType type;
     if (card['type'].toString().contains('driver')) {
       type = ActivityCardType.driverOffer;
+    // } else if (card['type'].toString().contains('rider') && card['matched']) {
+      // type = ActivityCardType.matchedRider;
     } else if (card['type'].toString().contains('matchedRiderRequests') && card['matched']) {
       type = ActivityCardType.matchedRider;
     } else {

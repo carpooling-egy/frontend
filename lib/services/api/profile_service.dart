@@ -10,7 +10,7 @@ class ProfileService {
   Future<Profile> getProfile(String userId) async {
     debugPrint('ProfileService: Getting profile for userId: $userId');
     try {
-      final response = await _apiService.get('/profiles/user/$userId');
+      final response = await _apiService.get('http://10.0.2.2:8080/api/profiles/user/$userId');
       debugPrint('ProfileService: Got response: $response');
       return Profile.fromJson(response);
     } catch (e) {
@@ -22,7 +22,7 @@ class ProfileService {
   Future<List<Profile>> getAllProfiles() async {
     debugPrint('ProfileService: Getting all profiles');
     try {
-      final response = await _apiService.get('/profiles');
+      final response = await _apiService.get('http://10.0.2.2:8080/api/profiles');
       debugPrint('ProfileService: Got response: $response');
       return (response as List).map((json) => Profile.fromJson(json)).toList();
     } catch (e) {
@@ -53,7 +53,7 @@ class ProfileService {
       };
       debugPrint('ProfileService: Sending data: $data');
 
-      final response = await _apiService.post('/profiles', data);
+      final response = await _apiService.post('http://10.0.2.2:8080/api/profiles', data);
       debugPrint('ProfileService: Got response: $response');
       return Profile.fromJson(response);
     } catch (e) {
@@ -84,7 +84,7 @@ class ProfileService {
       };
       debugPrint('ProfileService: Sending data: $data');
 
-      final response = await _apiService.put('/profiles/user/$userId', data);
+      final response = await _apiService.put('http://10.0.2.2:8080/api/profiles/user/$userId', data);
       debugPrint('ProfileService: Got response: $response');
       return Profile.fromJson(response);
     } catch (e) {
@@ -107,7 +107,7 @@ class ProfileService {
   Future<String> getUserGender(String userId) async {
     debugPrint('ProfileService: Getting gender for userId: $userId');
     try {
-      final response = await _apiService.get('/profiles/gender/$userId');
+      final response = await _apiService.get('http://10.0.2.2:8080/api/profiles/gender/$userId');
       debugPrint('ProfileService: Got response: $response');
       return response['gender'] as String;
     } catch (e) {

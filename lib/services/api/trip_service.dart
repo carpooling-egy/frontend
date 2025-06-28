@@ -8,7 +8,7 @@ class TripService {
 
   /// Fetch summarized cards for the user
   Future<Map<String, dynamic>> getSummarizedCards(String userId) async {
-    final url = 'https://9689-41-43-174-157.ngrok-free.app/trip-management/summarized-cards/C9bep1b4Dua0kxkzEloXX4Fw1wJ3';
+    final url = 'https://5ff2-41-43-174-157.ngrok-free.app/trip-management/summarized-cards/C9bep1b4Dua0kxkzEloXX4Fw1wJ3';
     try {
       debugPrint('TripService: Fetching summarized cards for user $userId');
       // Use the full URL, not the baseUrl
@@ -27,6 +27,14 @@ class TripService {
     required String userId,
     required String cardId,
   }) async {
+    // if(type.contains('Rider')) {
+    //   type = 'rider-request';
+    // } else if(type.contains('driver')) {
+    //   type = 'driver-offer';
+    // } else {
+    //   debugPrint('TripService: Unknown type $type, defaulting to driver');
+    // }
+
     if(type.contains('Rider')) {
       type = 'rider-request';
     } else if(type.contains('driver')) {
@@ -35,7 +43,7 @@ class TripService {
       debugPrint('TripService: Unknown type $type, defaulting to driver');
     }
 
-    final url = 'https://9689-41-43-174-157.ngrok-free.app/trip-management/detailed-card/$type';
+    final url = 'https://5ff2-41-43-174-157.ngrok-free.app/trip-management/detailed-card/$type';
     final body = {
       'userId': userId,
       'cardId': cardId,
@@ -53,7 +61,7 @@ class TripService {
 
   /// Fetch upcoming trips for the user
   Future<List<dynamic>> getUpcomingTrips(String userId) async {
-    final url = 'https://9689-41-43-174-157.ngrok-free.app/trip-management/upcomingTrips/$userId';
+    final url = 'https://5ff2-41-43-174-157.ngrok-free.app/trip-management/upcomingTrips/$userId';
     try {
       debugPrint('TripService: Fetching upcoming trips for user $userId');
       final response = await _apiService.get(url);
@@ -67,7 +75,7 @@ class TripService {
 
   /// Fetch pending rider requests for the user
   Future<List<dynamic>> getPendingRiderRequests(String userId) async {
-    final url = 'https://9689-41-43-174-157.ngrok-free.app/trip-management/pending-rider-requests/$userId';
+    final url = 'https://5ff2-41-43-174-157.ngrok-free.app/trip-management/pending-rider-requests/$userId';
     try {
       debugPrint('TripService: Fetching pending rider requests for user $userId');
       final response = await _apiService.get(url);

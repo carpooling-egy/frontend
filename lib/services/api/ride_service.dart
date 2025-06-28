@@ -104,7 +104,7 @@ class RideService {
   }
 
   // Request a ride
-  Future<RideRequest> requestRide({
+  Future<void> requestRide({
     required double sourceLatitude,
     required double sourceLongitude,
     required String sourceAddress,
@@ -142,9 +142,9 @@ class RideService {
       debugPrint('RideService: Sending data:');
       debugPrint(JsonEncoder.withIndent('  ').convert(rideRequest.toJson()));
       
-      final response = await _apiService.post('https://7b9e-197-55-251-232.ngrok-free.app/api/rider-requests', rideRequest.toJson());
+      final response = await _apiService.post('https://cold-mice-tie.loca.lt/api/rider-requests', rideRequest.toJson());
       debugPrint('RideService: Got response: $response');
-      return RideRequest.fromJson(response);
+      // return RideRequest.fromJson(response);
     } catch (e) {
       debugPrint('RideService: Error creating ride request: $e');
       throw Exception('Failed to create ride request: $e');
@@ -152,7 +152,7 @@ class RideService {
   }
 
   // Offer a ride
-  Future<RideOffer> offerRide({
+  Future<void> offerRide({
     required double sourceLatitude,
     required double sourceLongitude,
     required String sourceAddress,
@@ -190,9 +190,9 @@ class RideService {
       debugPrint('RideService: Sending data:');
       debugPrint(JsonEncoder.withIndent('  ').convert(rideOffer.toJson()));
       
-      final response = await _apiService.post('https://7b9e-197-55-251-232.ngrok-free.app/api/driver-offers', rideOffer.toJson());
+      final response = await _apiService.post('https://cold-mice-tie.loca.lt/api/driver-offers', rideOffer.toJson());
       debugPrint('RideService: Got response: $response');
-      return RideOffer.fromJson(response);
+      // return RideOffer.fromJson(response);
     } catch (e) {
       debugPrint('RideService: Error creating ride offer: $e');
       throw Exception('Failed to create ride offer: $e');
