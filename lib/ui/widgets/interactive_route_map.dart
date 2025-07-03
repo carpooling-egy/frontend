@@ -57,7 +57,7 @@ class InteractiveRouteMapState extends State<InteractiveRouteMap> {
   }
 
   Future<void> setCoordinates(List<Coordinate> coords) => setWaypoints(
-        coords.map((c) => LabeledWaypoint(coord: c)).toList(),
+        coords.map((c) => LabeledWaypoint(coord: c, label: "waypoint")).toList(),
       );
 
   static const List<Color> _predefinedColors = [
@@ -134,7 +134,7 @@ class InteractiveRouteMapState extends State<InteractiveRouteMap> {
       // Select color based on index or use default if out of range
       final color = i < _pointColors.length
           ? _pointColors[i]
-          : _pointColors[0];
+          : _predefinedColors[0].toARGB32();
 
       // Parentheses-like behavior:
       // If we see a color that matches the top of stack, it's like a closing parenthesis - pop it
@@ -161,8 +161,7 @@ class InteractiveRouteMapState extends State<InteractiveRouteMap> {
       final line = await _lineMgr.create(
         PolylineAnnotationOptions(
           geometry: geometry,
-          // lineColor: displayColor, for now
-          lineColor: _pointColors[0],
+          lineColor: _predefinedColors[0].toARGB32(), // Use a fixed blue color for all route lines
           // Adjust line width based on nesting depth
           lineWidth: (8 - (currentDepth > 4 ? 4 : currentDepth - 1)).toDouble().clamp(1.0, 8.0),
           lineJoin: LineJoin.ROUND,

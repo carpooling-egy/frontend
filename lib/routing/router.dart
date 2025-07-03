@@ -28,16 +28,22 @@ GoRouter router(FirebaseAuth auth) {
           state.matchedLocation == Routes.signup;
       final inWelcomeScreen = state.matchedLocation == Routes.welcome;
 
-      if (!loggedIn && !loggingIn) {
-        debugPrint('Redirecting to welcome screen');
-        return Routes.welcome; // Redirect to welcome if not logged in
+      // List of public routes that don't require authentication
+      final inPublicRoute = loggingIn || inWelcomeScreen;
+
+      debugPrint('Current route: ${state.matchedLocation}, loggedIn: $loggedIn, inPublicRoute: $inPublicRoute');
+
+      if (!loggedIn && !inPublicRoute) {
+        debugPrint('Redirecting to welcome screen from ${state.matchedLocation}');
+        return Routes.welcome; // Redirect to welcome if not logged in and not on a public route
       }
 
-      if (loggedIn && (loggingIn || inWelcomeScreen)) {
-        debugPrint('Redirecting to home screen');
-        return Routes.home; // Redirect to home if logged in and not already on the home screen
+      if (loggedIn && inPublicRoute) {
+        debugPrint('Redirecting to home screen from ${state.matchedLocation}');
+        return Routes.home; // Redirect to home if logged in and on a public route
       }
 
+      debugPrint('No redirection needed for ${state.matchedLocation}');
       return null; // No redirection needed
     },
     restorationScopeId: null,
@@ -76,18 +82,7 @@ GoRouter router(FirebaseAuth auth) {
       ),
       GoRoute(
         path: Routes.map,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const MapScreen(),
-          transitionsBuilder: (ctx, anim, sec, child) => SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0,1),
-              end: Offset.zero,
-            ).animate(anim),
-            child: FadeTransition(opacity: anim, child: child),
-          ),
-          transitionDuration: const Duration(milliseconds: 300),
-        ),
+        builder: (context, state) => const MapScreen(),
       ),
       // ── UPDATED tripMap route ───────────────────────────────────────────────
       GoRoute(

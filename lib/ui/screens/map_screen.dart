@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/coordinate.dart';
+import '../../models/labeled_waypoint.dart';
 import '../../models/map_pick_result.dart';
 import '../../models/place_suggestion.dart';
 import '../../view_models/route_info_viewmodel.dart';
@@ -56,6 +57,23 @@ class _MapScreenState extends State<MapScreen> {
     });
     await _updateRoute();
   }
+
+  // Future<void> _updateRoute() async {
+  //   final waypoints = <LabeledWaypoint>[];
+  //   if (_sourceCoord != null && _sourceSuggestion != null) {
+  //     waypoints.add(LabeledWaypoint(
+  //       coord: _sourceCoord!,
+  //       label: "Source: ${_sourceSuggestion!.name}",
+  //     ));
+  //   }
+  //   if (_destinationCoord != null && _destinationSuggestion != null) {
+  //     waypoints.add(LabeledWaypoint(
+  //       coord: _destinationCoord!,
+  //       label: "Destination: ${_destinationSuggestion!.name}",
+  //     ));
+  //   }
+  //   await _mapKey.currentState?.setWaypoints(waypoints);
+  // }
 
   Future<void> _updateRoute() async {
     final points = <Coordinate>[];
