@@ -128,6 +128,8 @@ class RideService {
     }
   }
 
+  final String _baseUrl = 'https://metal-queens-dress.loca.lt/api';
+
   // Request a ride
   Future<void> requestRide({
     required double sourceLatitude,
@@ -167,7 +169,7 @@ class RideService {
       debugPrint('RideService: Sending data:');
       debugPrint(JsonEncoder.withIndent('  ').convert(rideRequest.toJson()));
       
-      final response = await _apiService.post('https://cold-mice-tie.loca.lt/api/rider-requests', rideRequest.toJson());
+      final response = await _apiService.post('$_baseUrl/rider-requests', rideRequest.toJson());
       debugPrint('RideService: Got response: $response');
       // return RideRequest.fromJson(response);
     } catch (e) {
@@ -215,7 +217,7 @@ class RideService {
       debugPrint('RideService: Sending data:');
       debugPrint(JsonEncoder.withIndent('  ').convert(rideOffer.toJson()));
       
-      final response = await _apiService.post('https://cold-mice-tie.loca.lt/api/driver-offers', rideOffer.toJson());
+      final response = await _apiService.post('$_baseUrl/driver-offers', rideOffer.toJson());
       debugPrint('RideService: Got response: $response');
       // return RideOffer.fromJson(response);
     } catch (e) {

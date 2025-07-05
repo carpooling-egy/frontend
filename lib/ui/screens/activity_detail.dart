@@ -35,47 +35,68 @@ class ActivityDetailScreen extends StatelessWidget {
 
   List<LabeledWaypoint> _buildDriverWaypoints(Map<String, dynamic> offer) {
     final rawPath = offer['path'] as List<dynamic>? ?? <dynamic>[];
-    final matchedRiders = (offer['matchedRiders'] as List<Map<String, dynamic>>?)
-        ?? <Map<String, dynamic>>[];
+    
+    // Safely handle matchedRiders with proper type checking
+    List<Map<String, dynamic>> matchedRiders = [];
+    final rawMatchedRiders = offer['matchedRiders'];
+    if (rawMatchedRiders is List) {
+      matchedRiders = rawMatchedRiders.whereType<Map<String, dynamic>>().toList();
+    }
+
+    debugPrint('_buildDriverWaypoints: rawPath length: ${rawPath.length}');
+    debugPrint('_buildDriverWaypoints: matchedRiders length: ${matchedRiders.length}');
+    debugPrint('_buildDriverWaypoints: rawMatchedRiders type: ${rawMatchedRiders.runtimeType}');
 
     final fullPathWaypoints = <LabeledWaypoint>[];
 
+    // Add source waypoint
     fullPathWaypoints.add(
       LabeledWaypoint(
         coord: Coordinate(
-          offer['sourceLongitude'],
-          offer['sourceLatitude'],
+          offer['sourceLongitude']?.toDouble() ?? 0.0,
+          offer['sourceLatitude']?.toDouble() ?? 0.0,
         ),
         label: 'You',
       ),
     );
 
+    // Add path waypoints
     for (int i = 0; i < rawPath.length; i++) {
-      final pt = rawPath[i] as Map<String, dynamic>;
-      final riderName = '${matchedRiders[i]['riderFirstName'] ?? ''} ${matchedRiders[i]['riderLastName'] ?? ''}';
-      final lat =
-          (pt['latitude'] is num) ? (pt['latitude'] as num).toDouble() : 0.0;
-      final lon =
-          (pt['longitude'] is num) ? (pt['longitude'] as num).toDouble() : 0.0;
+      final pt = rawPath[i];
+      if (pt is! Map<String, dynamic>) {
+        debugPrint('_buildDriverWaypoints: Invalid path point at index $i: $pt');
+        continue;
+      }
+      
+      final riderName = i < matchedRiders.length 
+          ? '${matchedRiders[i]['riderFirstName'] ?? ''} ${matchedRiders[i]['riderLastName'] ?? ''}'
+          : 'Rider ${i + 1}';
+      
+      final lat = (pt['latitude'] is num) ? (pt['latitude'] as num).toDouble() : 0.0;
+      final lon = (pt['longitude'] is num) ? (pt['longitude'] as num).toDouble() : 0.0;
 
-      fullPathWaypoints.add(
-        LabeledWaypoint(
-          coord: Coordinate(lon, lat),
-          label: riderName,
-        ),
-      );
+      if (lat != 0.0 && lon != 0.0) {
+        fullPathWaypoints.add(
+          LabeledWaypoint(
+            coord: Coordinate(lon, lat),
+            label: riderName,
+          ),
+        );
+      }
     }
 
+    // Add destination waypoint
     fullPathWaypoints.add(
       LabeledWaypoint(
         coord: Coordinate(
-          offer['destinationLongitude'],
-          offer['destinationLatitude'],
+          offer['destinationLongitude']?.toDouble() ?? 0.0,
+          offer['destinationLatitude']?.toDouble() ?? 0.0,
         ),
         label: 'You',
       ),
     );
 
+    debugPrint('_buildDriverWaypoints: Created ${fullPathWaypoints.length} waypoints');
     return fullPathWaypoints;
   }
 

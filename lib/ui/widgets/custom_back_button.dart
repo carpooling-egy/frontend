@@ -15,7 +15,7 @@ class CustomBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       icon: Icon(Icons.arrow_back, color: color),
-      onPressed: () => context.go(route), // Navigate to the specified route
+      onPressed: () => context.go(route),
     );
   }
   

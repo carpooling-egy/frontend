@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/services/iroute_service.dart';
 import 'package:frontend/services/valhalla_route_service.dart';
+import 'package:frontend/services/mapbox_route_service.dart';
 import 'package:frontend/view_models/route_info_viewmodel.dart';
 import 'package:frontend/view_models/route_viewmodel.dart';
 import 'package:provider/provider.dart';
@@ -64,7 +65,7 @@ class MyApp extends StatelessWidget {
             context.read<TripService>(),
           ),
         ),
-        Provider<IRouteService>(create: (_) => ValhallaRouteService()),
+        Provider<IRouteService>(create: (_) => MapboxRouteService()),
         ChangeNotifierProvider<RouteViewModel>(
           create: (context) =>
               RouteViewModel(context.read<IRouteService>()),

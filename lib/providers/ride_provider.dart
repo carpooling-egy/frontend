@@ -93,7 +93,16 @@ class RideProvider with ChangeNotifier {
     notifyListeners();
     try {
       final requests = await _tripService.getPendingRiderRequests(userId);
-      _summarizedCards = requests;
+      
+      // Transform the data to match the expected format
+      _summarizedCards = requests.map<Map<String, dynamic>>((request) {
+        final Map<String, dynamic> transformedRequest = Map<String, dynamic>.from(request);
+        // Change type from "rider-request" to "unmatched-rider-request" for UI filtering
+        if (transformedRequest['type'] == 'rider-request' && transformedRequest['matched'] == false) {
+          transformedRequest['type'] = 'unmatched-rider-request';
+        }
+        return transformedRequest;
+      }).toList();
       
       _isLoadingSummarized = false;
       notifyListeners();

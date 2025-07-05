@@ -9,4 +9,6 @@ abstract final class Routes {
   static const notifications = '/notifications';
   static const map = '/map';
   static const tripMap = '/rider-trip';
+  static const upcomingTrips = '/upcoming-trips';
+  static const pendingRequests = '/pending-requests';
 }

@@ -23,10 +23,10 @@ class MapboxRouteService implements IRouteService {
 
     final uri = Uri.parse(
       '$_base/$coordString'
-          '?overview=full'
-          '&geometries=geojson'
-          '&steps=true'
-          '&access_token=$token',
+      '?overview=full'
+      '&geometries=geojson'
+      '&steps=true'
+      '&access_token=$token',
     );
 
     final res = await http.get(uri);
@@ -35,23 +35,48 @@ class MapboxRouteService implements IRouteService {
     }
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
-    final routeData = (data['routes'] as List).first as Map<String, dynamic>;
 
-    // Split into legs, each a List<Coordinate>
-    final legsJson = (routeData['legs'] as List).cast<Map<String, dynamic>>();
-    final coordsPerLeg = legsJson.map((legJson) {
-      return (legJson['geometry']['coordinates'] as List)
-          .cast<List>()
-          .map((c) => Coordinate.fromList(c))
-          .toList(growable: false);
-    }).toList(growable: false);
+    // Safely check if 'routes' exists and is not empty
+    final routes = data['routes'] as List?;
+    if (routes == null || routes.isEmpty) {
+      throw Exception('No route found.');
+    }
+    
+    final routeData = routes.first as Map<String, dynamic>;
+
+    // --- Start of Modified Code ---
+
+    // Get the main geometry object from the route itself.
+    final geometry = routeData['geometry'] as Map<String, dynamic>?;
+
+    // Create a list to hold the coordinates for the entire route.
+    final List<Coordinate> routeCoordinates = [];
+
+    // Safely check if geometry and its coordinates exist.
+    if (geometry != null && geometry['coordinates'] != null) {
+      final coordinates = geometry['coordinates'] as List;
+      
+      // Convert the raw coordinates into your custom Coordinate objects.
+      for (final c in coordinates) {
+        routeCoordinates.add(Coordinate.fromList(c as List));
+      }
+    }
+
+    if (routeCoordinates.isEmpty) {
+      throw Exception('No valid coordinates found in the route geometry.');
+    }
+    
+    // --- End of Modified Code ---
 
     // total distance and duration already in routeData
     final totalDistance = (routeData['distance'] as num).toDouble();
     final totalDuration = (routeData['duration'] as num).toDouble();
 
+    // The `Route` model expects `coords` to be a `List<List<Coordinate>>`.
+    // Since we now have one list of coordinates for the whole route,
+    // we wrap it in another list to match the model.
     return Route(
-      coords: coordsPerLeg,
+      coords: [routeCoordinates],
       distanceMeters: totalDistance,
       durationSeconds: totalDuration,
     );

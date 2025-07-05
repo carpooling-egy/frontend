@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/palette.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/providers/ride_provider.dart';
 import 'package:frontend/ui/screens/activity_detail.dart';
 import 'package:frontend/utils/date_time_utils.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:frontend/ui/widgets/activity_card.dart';
+import 'package:frontend/ui/widgets/custom_back_button.dart';
+import 'package:frontend/routing/routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 
 class PendingRequestsScreen extends StatefulWidget {
   const PendingRequestsScreen({Key? key}) : super(key: key);
@@ -29,7 +33,16 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pending Requests')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Palette.primaryColor),
+          onPressed: () {
+            debugPrint('Back button pressed, navigating to home');
+            GoRouter.of(context).go(Routes.home);
+          },
+        ),
+        title: const Text('Pending Requests'),
+      ),
       body: Consumer<RideProvider>(
         builder: (context, rideProvider, child) {
           if (rideProvider.isLoadingSummarized) {

@@ -17,8 +17,6 @@ import 'package:frontend/models/ride_offer.dart';
 import 'package:frontend/ui/widgets/custom_back_button.dart';
 import 'package:frontend/ui/screens/activity_detail.dart';
 import 'package:frontend/utils/date_time_utils.dart';
-import 'package:frontend/ui/screens/upcoming_trips.dart';
-import 'package:frontend/ui/screens/pending_requests.dart';
 import 'package:frontend/ui/widgets/activity_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -171,10 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Upcoming Trips'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const UpcomingTripsScreen()),
-                );
+                context.go(Routes.upcomingTrips);
               },
             ),
             ListTile(
@@ -182,10 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Pending Requests'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const PendingRequestsScreen()),
-                );
+                context.go(Routes.pendingRequests);
               },
             ),
             const Divider(),

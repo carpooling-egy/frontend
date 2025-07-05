@@ -15,6 +15,8 @@ import '../ui/screens/profile.dart';
 import '../ui/screens/request_ride.dart';
 import '../ui/screens/offer_ride.dart';
 import '../ui/screens/notifications.dart';
+import '../ui/screens/upcoming_trips.dart';
+import '../ui/screens/pending_requests.dart';
 
 
 GoRouter router(FirebaseAuth auth) {
@@ -79,6 +81,14 @@ GoRouter router(FirebaseAuth auth) {
       GoRoute(
         path: Routes.notifications,
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: Routes.upcomingTrips,
+        builder: (context, state) => const UpcomingTripsScreen(),
+      ),
+      GoRoute(
+        path: Routes.pendingRequests,
+        builder: (context, state) => const PendingRequestsScreen(),
       ),
       GoRoute(
         path: Routes.map,
